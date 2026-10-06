@@ -42,7 +42,6 @@ public class InventoryService {
             checkout.setStockReserved(false);
             LOG.infof("[inventory] released stock for customer %s", checkout.getCustomerId());
         }
-        checkout.setStatus(CheckoutStatus.PAYMENT_FAILED);
         return checkout;
     }
 

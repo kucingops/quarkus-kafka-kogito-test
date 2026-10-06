@@ -82,6 +82,30 @@ class TransactionTransformerTest {
     }
 
     @Test
+    void rejectsValuesThatDoNotFitTheTable() {
+        RawTransaction longId = new RawTransaction("T".repeat(65), "CUST-1", null, "Shop",
+                BigDecimal.TEN, "IDR", null, Instant.now());
+        InvalidTransactionException e = assertThrows(InvalidTransactionException.class,
+                () -> transformer.transform(longId));
+        assertEquals("transactionId must not exceed 64 characters", e.getMessage());
+
+        assertThrows(InvalidTransactionException.class, () -> transformer.transform(raw("1000000000001", "IDR")));
+        assertThrows(InvalidTransactionException.class, () -> transformer.transform(raw("0.00001", "USD")));
+    }
+
+    @Test
+    void masksShortEmailLocalPart() {
+        assertEquals("*@x.com", maskedEmailOf("a@x.com"));
+        assertEquals("a*@x.com", maskedEmailOf("ab@x.com"));
+        assertEquals("ab*@x.com", maskedEmailOf("abc@x.com"));
+    }
+
+    private String maskedEmailOf(String email) {
+        return transformer.transform(new RawTransaction("TRX-1", "CUST-1", email, "Shop",
+                BigDecimal.TEN, "IDR", null, Instant.now())).maskedEmail();
+    }
+
+    @Test
     void rejectsMissingRequiredFields() {
         RawTransaction noCustomer = new RawTransaction("TRX-1", " ", null, "Shop",
                 BigDecimal.TEN, "IDR", null, Instant.now());

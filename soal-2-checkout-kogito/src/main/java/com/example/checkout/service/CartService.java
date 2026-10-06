@@ -1,5 +1,8 @@
 package com.example.checkout.service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.jboss.logging.Logger;
 
 import com.example.checkout.model.CartItem;
@@ -42,11 +45,16 @@ public class CartService {
         if (isBlank(checkout.getPaymentMethod())) {
             return "paymentMethod is required";
         }
+        if (!PaymentService.supports(checkout.getPaymentMethod())) {
+            return "unsupported payment method: " + checkout.getPaymentMethod();
+        }
+        Map<String, Integer> quantityPerSku = new HashMap<>();
         for (CartItem item : checkout.getItems()) {
             if (isBlank(item.getSku()) || catalog.find(item.getSku()).isEmpty()) {
                 return "unknown product: " + item.getSku();
             }
-            if (item.getQuantity() < 1 || item.getQuantity() > MAX_QTY_PER_ITEM) {
+            if (item.getQuantity() < 1
+                    || quantityPerSku.merge(item.getSku(), item.getQuantity(), Integer::sum) > MAX_QTY_PER_ITEM) {
                 return "quantity for " + item.getSku() + " must be between 1 and " + MAX_QTY_PER_ITEM;
             }
         }

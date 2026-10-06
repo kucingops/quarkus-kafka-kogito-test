@@ -68,6 +68,28 @@ class CartServiceTest {
     }
 
     @Test
+    void unsupportedPaymentMethodIsRejected() {
+        Checkout checkout = checkout(new CartItem("SKU-001", 1));
+        checkout.setPaymentMethod("CRYPTO");
+
+        Checkout result = service.validateCart(checkout);
+
+        assertFalse(result.isCartValid());
+        assertEquals("unsupported payment method: CRYPTO", result.getFailureReason());
+        verifyNoInteractions(catalog);
+    }
+
+    @Test
+    void quantityLimitAppliesToTheTotalPerSku() {
+        when(catalog.find("SKU-001")).thenReturn(Optional.of(new Product("SKU-001", "Kaos Polos", 75_000, 10)));
+
+        Checkout result = service.validateCart(checkout(new CartItem("SKU-001", 6), new CartItem("SKU-001", 5)));
+
+        assertFalse(result.isCartValid());
+        assertEquals("quantity for SKU-001 must be between 1 and 10", result.getFailureReason());
+    }
+
+    @Test
     void quantityAboveLimitIsRejected() {
         when(catalog.find("SKU-001")).thenReturn(Optional.of(new Product("SKU-001", "Kaos Polos", 75_000, 10)));
 

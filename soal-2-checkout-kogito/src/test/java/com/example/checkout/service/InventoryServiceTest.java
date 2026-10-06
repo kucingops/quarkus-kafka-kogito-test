@@ -67,7 +67,6 @@ class InventoryServiceTest {
 
         verify(catalog).release(Map.of("SKU-001", 3, "SKU-002", 1));
         assertFalse(result.isStockReserved());
-        assertEquals(CheckoutStatus.PAYMENT_FAILED, result.getStatus());
     }
 
     @Test

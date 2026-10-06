@@ -3,7 +3,6 @@ package com.example.transactions.messaging;
 import java.time.Instant;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
@@ -12,7 +11,9 @@ import com.example.transactions.model.RejectedTransaction;
 import com.example.transactions.service.TransactionProcessor;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult;
 
+import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -26,32 +27,39 @@ public class TransactionConsumer {
 
     @Inject
     @Channel("transactions-enriched-out")
-    Emitter<EnrichedTransaction> enrichedEmitter;
+    MutinyEmitter<EnrichedTransaction> enrichedEmitter;
 
     @Inject
     @Channel("transactions-dlq-out")
-    Emitter<RejectedTransaction> dlqEmitter;
+    MutinyEmitter<RejectedTransaction> dlqEmitter;
 
     @Incoming("transactions-in")
     @Blocking
     public void consume(String payload) {
-        ProcessingResult result = processor.process(payload);
+        ProcessingResult result;
+        try {
+            result = processor.process(payload);
+        } catch (RuntimeException e) {
+            LOG.errorf(e, "Unexpected error while processing message");
+            reject(payload, "processing error: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getName()));
+            return;
+        }
 
         switch (result.status()) {
-            case PROCESSED -> {
-                enrichedEmitter.send(result.transaction()).toCompletableFuture().join();
-                LOG.infof("Processed %s -> %s (%s IDR, highRisk=%s)",
-                        result.transaction().transactionId(),
-                        result.transaction().category(),
-                        result.transaction().amountIdr(),
-                        result.transaction().highRisk());
-            }
+            case PROCESSED -> publish(result.transaction());
             case DUPLICATE -> LOG.debugf("Duplicate ignored: %s", result.transaction().transactionId());
-            case REJECTED -> {
-                dlqEmitter.send(new RejectedTransaction(payload, result.reason(), Instant.now()))
-                        .toCompletableFuture().join();
-                LOG.warnf("Rejected message: %s", result.reason());
-            }
+            case REJECTED -> reject(payload, result.reason());
         }
+    }
+
+    private void publish(EnrichedTransaction tx) {
+        enrichedEmitter.sendMessageAndAwait(KafkaRecord.of(tx.transactionId(), tx));
+        LOG.infof("Processed %s -> %s (%s IDR, highRisk=%s)",
+                tx.transactionId(), tx.category(), tx.amountIdr(), tx.highRisk());
+    }
+
+    private void reject(String payload, String reason) {
+        dlqEmitter.sendAndAwait(new RejectedTransaction(payload, reason, Instant.now()));
+        LOG.warnf("Rejected message: %s", reason);
     }
 }

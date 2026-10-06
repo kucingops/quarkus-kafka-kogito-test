@@ -40,6 +40,17 @@ class PaymentServiceTest {
     }
 
     @Test
+    void refundMarksCheckoutAsOrderFailed() {
+        Checkout paid = service.processPayment(checkout("COD", 100_000));
+
+        Checkout result = service.refundPayment(paid);
+
+        assertTrue(result.isPaymentRefunded());
+        assertEquals(CheckoutStatus.ORDER_FAILED, result.getStatus());
+        assertTrue(result.getFailureReason().contains(result.getPaymentReference()));
+    }
+
+    @Test
     void unsupportedMethodIsDeclined() {
         Checkout result = service.processPayment(checkout("CRYPTO", 1_000));
 

@@ -53,7 +53,9 @@ class KafkaContainerIT {
                  "paymentMethod":"bank-transfer","timestamp":"2026-10-01T10:45:00Z"}
                 """.formatted(id));
 
-        JsonNode out = mapper.readTree(waitForRecord("transactions-enriched", id));
+        ConsumerRecord<String, String> record = waitForRecord("transactions-enriched", id);
+        assertEquals(id, record.key());
+        JsonNode out = mapper.readTree(record.value());
         assertEquals("ELEKTRONIK SEJAHTERA", out.get("merchant").asText());
         assertEquals(15000000, out.get("amountIdr").asLong());
         assertTrue(out.get("highRisk").asBoolean());
@@ -64,6 +66,24 @@ class KafkaContainerIT {
     }
 
     @Test
+    void valueThatDoesNotFitTheTableIsProducedToDlqAndConsumerKeepsRunning() throws Exception {
+        String tooLong = "TRX-" + "9".repeat(80);
+        send("""
+                {"transactionId":"%s","customerId":"CUST-07","merchant":"Toko Panjang",
+                 "amount":5000,"currency":"IDR","timestamp":"2026-10-01T14:00:00Z"}
+                """.formatted(tooLong));
+        String id = "TRX-" + UUID.randomUUID();
+        send("""
+                {"transactionId":"%s","customerId":"CUST-08","merchant":"Toko Berikutnya",
+                 "amount":5000,"currency":"IDR","timestamp":"2026-10-01T14:05:00Z"}
+                """.formatted(id));
+
+        JsonNode rejected = mapper.readTree(waitForRecord("transactions-dlq", tooLong).value());
+        assertEquals("transactionId must not exceed 64 characters", rejected.get("reason").asText());
+        assertNotNull(waitForRecord("transactions-enriched", id));
+    }
+
+    @Test
     void invalidTransactionIsProducedToDlqAndNotInserted() throws Exception {
         String id = "TRX-" + UUID.randomUUID();
         send("""
@@ -71,7 +91,7 @@ class KafkaContainerIT {
                  "amount":-5000,"currency":"IDR","timestamp":"2026-10-01T14:00:00Z"}
                 """.formatted(id));
 
-        JsonNode rejected = mapper.readTree(waitForRecord("transactions-dlq", id));
+        JsonNode rejected = mapper.readTree(waitForRecord("transactions-dlq", id).value());
         assertEquals("amount must be greater than 0", rejected.get("reason").asText());
 
         assertNull(QuarkusTransaction.requiringNew().call(() -> repository.findById(id)));
@@ -87,7 +107,7 @@ class KafkaContainerIT {
         }
     }
 
-    private String waitForRecord(String topic, String marker) {
+    private ConsumerRecord<String, String> waitForRecord(String topic, String marker) {
         Map<String, Object> config = Map.of(
                 "bootstrap.servers", bootstrapServers,
                 "group.id", "it-" + UUID.randomUUID(),
@@ -100,7 +120,7 @@ class KafkaContainerIT {
             while (System.currentTimeMillis() < deadline) {
                 for (ConsumerRecord<String, String> record : consumer.poll(Duration.ofMillis(500))) {
                     if (record.value().contains(marker)) {
-                        return record.value();
+                        return record;
                     }
                 }
             }

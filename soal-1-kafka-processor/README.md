@@ -13,7 +13,7 @@ transactions-raw ──► TransactionConsumer ──► TransactionProcessor �
                                                 │  TransactionTransformer (manipulasi)
                                                 │  cek duplikat + simpan
                                                 ▼
-                                   valid   ──► transactions-enriched
+                                   valid   ──► transactions-enriched (key = transactionId)
                                    invalid ──► transactions-dlq
 ```
 
@@ -29,7 +29,7 @@ Semua logika ada di `TransactionTransformer`.
 
 | # | Manipulasi | Contoh |
 |---|---|---|
-| 1 | Validasi field wajib, amount > 0, mata uang didukung | `amount: -5000` → ditolak ke DLQ |
+| 1 | Validasi field wajib, amount > 0 dan dalam batas, mata uang didukung, panjang teks muat di kolom tabel | `amount: -5000` → ditolak ke DLQ |
 | 2 | Normalisasi merchant: trim, rapikan spasi, uppercase | `"  toko   maju jaya "` → `"TOKO MAJU JAYA"` |
 | 3 | Normalisasi metode bayar | `"e-wallet"` → `"E_WALLET"` |
 | 4 | Konversi mata uang ke Rupiah (kurs statis) | `45.5 USD` → `728000 IDR` |
@@ -58,8 +58,10 @@ Hasil di `transactions-enriched` dan di H2:
 Catatan singkat:
 
 - Soal memberi pilihan output ke Kafka atau database. Di sini dikerjakan keduanya.
-- Data yang tidak valid dikirim ke `transactions-dlq`, jadi consumer tidak berhenti karena satu pesan rusak.
+- Data yang tidak valid dikirim ke `transactions-dlq`, jadi consumer tidak berhenti karena satu pesan rusak. Exception tak terduga saat memproses satu pesan (misalnya error database) juga berakhir di DLQ dengan alasan `processing error: ...`.
 - `transactionId` menjadi primary key dan dicek sebelum insert, jadi pesan duplikat hanya diproses sekali.
+- Record di `transactions-enriched` memakai `transactionId` sebagai key.
+- Insert ke database dan pengiriman ke Kafka bukan satu transaksi. Kalau pengiriman ke `transactions-enriched` gagal, consumer berhenti dan pesan itu diproses ulang dari awal setelah aplikasi dijalankan lagi (H2 in-memory ikut kosong saat restart).
 
 ## Cara menjalankan
 
@@ -115,10 +117,10 @@ mvn test
 |---|---|---|
 | `TransactionTransformerTest` | – (logika murni) | Normalisasi, konversi kurs, batas kategori, flag risiko, masking, validasi |
 | `TransactionProcessorTest` | Transformer, repository | Data valid disimpan, duplikat tidak disimpan ulang, data invalid dan JSON rusak ditolak |
-| `TransactionConsumerTest` | Processor, emitter Kafka | Hasil valid ke topic output, yang ditolak ke DLQ, duplikat tidak dikirim |
+| `TransactionConsumerTest` | Processor, emitter Kafka | Hasil valid ke topic output dengan key `transactionId`, yang ditolak dan error tak terduga ke DLQ, duplikat tidak dikirim |
 | `TransactionResourceTest` | Repository, emitter Kafka | Endpoint publish, list, detail, dan 404 |
 
-**Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Apache Kafka sungguhan di dalam container. `KafkaContainerResource` menyalakan image `apache/kafka:3.8.0` (sama dengan `docker-compose.yml`) lewat Testcontainers, lalu mengisi `kafka.bootstrap.servers` dengan alamat container itu. Dev Services dimatikan di profil test (`%test.quarkus.kafka.devservices.enabled=false`) supaya tidak ada broker kedua. Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database.
+**Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Apache Kafka sungguhan di dalam container. `KafkaContainerResource` menyalakan image `apache/kafka:3.8.0` (sama dengan `docker-compose.yml`) lewat Testcontainers, lalu mengisi `kafka.bootstrap.servers` dengan alamat container itu. Dev Services dimatikan di profil test (`%test.quarkus.kafka.devservices.enabled=false`) supaya tidak ada broker kedua. Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database. Satu test juga memastikan consumer tetap memproses pesan berikutnya setelah menerima pesan yang nilainya tidak muat di tabel.
 
 Pastikan variabel Podman di bagian "Cara menjalankan" sudah di-set, lalu:
 

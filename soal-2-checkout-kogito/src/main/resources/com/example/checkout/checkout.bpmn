@@ -17,6 +17,10 @@
   <bpmn2:itemDefinition id="__Task_SendNotification_ResultOutputXItem" structureRef="com.example.checkout.model.Checkout"/>
   <bpmn2:itemDefinition id="__Task_ReleaseStock_ParameterInputXItem" structureRef="com.example.checkout.model.Checkout"/>
   <bpmn2:itemDefinition id="__Task_ReleaseStock_ResultOutputXItem" structureRef="com.example.checkout.model.Checkout"/>
+  <bpmn2:itemDefinition id="__Task_RefundPayment_ParameterInputXItem" structureRef="com.example.checkout.model.Checkout"/>
+  <bpmn2:itemDefinition id="__Task_RefundPayment_ResultOutputXItem" structureRef="com.example.checkout.model.Checkout"/>
+  <bpmn2:itemDefinition id="__Task_ReleaseStockOrderFailed_ParameterInputXItem" structureRef="com.example.checkout.model.Checkout"/>
+  <bpmn2:itemDefinition id="__Task_ReleaseStockOrderFailed_ResultOutputXItem" structureRef="com.example.checkout.model.Checkout"/>
   <bpmn2:interface id="Task_ValidateCart_ServiceInterface" name="com.example.checkout.service.CartService" implementationRef="com.example.checkout.service.CartService">
     <bpmn2:operation id="Task_ValidateCart_ServiceOperation" name="validateCart" implementationRef="validateCart"/>
   </bpmn2:interface>
@@ -41,6 +45,13 @@
   <bpmn2:interface id="Task_ReleaseStock_ServiceInterface" name="com.example.checkout.service.InventoryService" implementationRef="com.example.checkout.service.InventoryService">
     <bpmn2:operation id="Task_ReleaseStock_ServiceOperation" name="releaseStock" implementationRef="releaseStock"/>
   </bpmn2:interface>
+  <bpmn2:interface id="Task_RefundPayment_ServiceInterface" name="com.example.checkout.service.PaymentService" implementationRef="com.example.checkout.service.PaymentService">
+    <bpmn2:operation id="Task_RefundPayment_ServiceOperation" name="refundPayment" implementationRef="refundPayment"/>
+  </bpmn2:interface>
+  <bpmn2:interface id="Task_ReleaseStockOrderFailed_ServiceInterface" name="com.example.checkout.service.InventoryService" implementationRef="com.example.checkout.service.InventoryService">
+    <bpmn2:operation id="Task_ReleaseStockOrderFailed_ServiceOperation" name="releaseStock" implementationRef="releaseStock"/>
+  </bpmn2:interface>
+  <bpmn2:error id="Error_OrderFailed" errorCode="java.lang.RuntimeException"/>
   <bpmn2:process id="checkout" drools:packageName="com.example.checkout" drools:version="1.0" drools:adHoc="false" name="Marketplace Checkout" isExecutable="true" processType="Public">
     <bpmn2:property id="checkout" itemSubjectRef="_checkoutItem" name="checkout"/>
     <bpmn2:sequenceFlow id="Flow_1" sourceRef="StartEvent_Checkout" targetRef="Task_ValidateCart"/>
@@ -84,6 +95,9 @@
     <bpmn2:sequenceFlow id="Flow_6" sourceRef="Task_ReleaseStock" targetRef="EndEvent_PaymentFailed"/>
     <bpmn2:sequenceFlow id="Flow_7" sourceRef="Task_CreateOrder" targetRef="Task_SendNotification"/>
     <bpmn2:sequenceFlow id="Flow_8" sourceRef="Task_SendNotification" targetRef="EndEvent_Completed"/>
+    <bpmn2:sequenceFlow id="Flow_OrderFailed" sourceRef="Boundary_OrderFailed" targetRef="Task_RefundPayment"/>
+    <bpmn2:sequenceFlow id="Flow_10" sourceRef="Task_RefundPayment" targetRef="Task_ReleaseStockOrderFailed"/>
+    <bpmn2:sequenceFlow id="Flow_11" sourceRef="Task_ReleaseStockOrderFailed" targetRef="EndEvent_OrderFailed"/>
     <bpmn2:startEvent id="StartEvent_Checkout" name="Checkout diminta"><bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Checkout diminta]]></drools:metaValue></drools:metaData></bpmn2:extensionElements><bpmn2:outgoing>Flow_1</bpmn2:outgoing></bpmn2:startEvent>
     <bpmn2:serviceTask id="Task_ValidateCart" drools:serviceimplementation="Java" drools:serviceinterface="com.example.checkout.service.CartService" drools:serviceoperation="validateCart" name="Validasi Keranjang" implementation="Java" operationRef="Task_ValidateCart_ServiceOperation">
       <bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Validasi Keranjang]]></drools:metaValue></drools:metaData></bpmn2:extensionElements>
@@ -190,6 +204,32 @@
       <bpmn2:dataOutputAssociation><bpmn2:sourceRef>Task_ReleaseStock_ResultOutputX</bpmn2:sourceRef><bpmn2:targetRef>checkout</bpmn2:targetRef></bpmn2:dataOutputAssociation>
     </bpmn2:serviceTask>
     <bpmn2:endEvent id="EndEvent_PaymentFailed" name="Pembayaran Gagal"><bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Pembayaran Gagal]]></drools:metaValue></drools:metaData></bpmn2:extensionElements><bpmn2:incoming>Flow_6</bpmn2:incoming></bpmn2:endEvent>
+    <bpmn2:boundaryEvent id="Boundary_OrderFailed" drools:boundaryca="true" drools:dockerinfo="102.0^74.0|" name="Order gagal dibuat" attachedToRef="Task_CreateOrder"><bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Order gagal dibuat]]></drools:metaValue></drools:metaData></bpmn2:extensionElements><bpmn2:outgoing>Flow_OrderFailed</bpmn2:outgoing><bpmn2:errorEventDefinition errorRef="Error_OrderFailed"/></bpmn2:boundaryEvent>
+    <bpmn2:serviceTask id="Task_RefundPayment" drools:serviceimplementation="Java" drools:serviceinterface="com.example.checkout.service.PaymentService" drools:serviceoperation="refundPayment" name="Refund Pembayaran" implementation="Java" operationRef="Task_RefundPayment_ServiceOperation">
+      <bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Refund Pembayaran]]></drools:metaValue></drools:metaData></bpmn2:extensionElements>
+      <bpmn2:incoming>Flow_OrderFailed</bpmn2:incoming><bpmn2:outgoing>Flow_10</bpmn2:outgoing>
+      <bpmn2:ioSpecification>
+        <bpmn2:dataInput id="Task_RefundPayment_ParameterInputX" drools:dtype="com.example.checkout.model.Checkout" itemSubjectRef="__Task_RefundPayment_ParameterInputXItem" name="Parameter"/>
+        <bpmn2:dataOutput id="Task_RefundPayment_ResultOutputX" drools:dtype="com.example.checkout.model.Checkout" itemSubjectRef="__Task_RefundPayment_ResultOutputXItem" name="Result"/>
+        <bpmn2:inputSet><bpmn2:dataInputRefs>Task_RefundPayment_ParameterInputX</bpmn2:dataInputRefs></bpmn2:inputSet>
+        <bpmn2:outputSet><bpmn2:dataOutputRefs>Task_RefundPayment_ResultOutputX</bpmn2:dataOutputRefs></bpmn2:outputSet>
+      </bpmn2:ioSpecification>
+      <bpmn2:dataInputAssociation><bpmn2:sourceRef>checkout</bpmn2:sourceRef><bpmn2:targetRef>Task_RefundPayment_ParameterInputX</bpmn2:targetRef></bpmn2:dataInputAssociation>
+      <bpmn2:dataOutputAssociation><bpmn2:sourceRef>Task_RefundPayment_ResultOutputX</bpmn2:sourceRef><bpmn2:targetRef>checkout</bpmn2:targetRef></bpmn2:dataOutputAssociation>
+    </bpmn2:serviceTask>
+    <bpmn2:serviceTask id="Task_ReleaseStockOrderFailed" drools:serviceimplementation="Java" drools:serviceinterface="com.example.checkout.service.InventoryService" drools:serviceoperation="releaseStock" name="Rilis Stok Kompensasi" implementation="Java" operationRef="Task_ReleaseStockOrderFailed_ServiceOperation">
+      <bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Rilis Stok Kompensasi]]></drools:metaValue></drools:metaData></bpmn2:extensionElements>
+      <bpmn2:incoming>Flow_10</bpmn2:incoming><bpmn2:outgoing>Flow_11</bpmn2:outgoing>
+      <bpmn2:ioSpecification>
+        <bpmn2:dataInput id="Task_ReleaseStockOrderFailed_ParameterInputX" drools:dtype="com.example.checkout.model.Checkout" itemSubjectRef="__Task_ReleaseStockOrderFailed_ParameterInputXItem" name="Parameter"/>
+        <bpmn2:dataOutput id="Task_ReleaseStockOrderFailed_ResultOutputX" drools:dtype="com.example.checkout.model.Checkout" itemSubjectRef="__Task_ReleaseStockOrderFailed_ResultOutputXItem" name="Result"/>
+        <bpmn2:inputSet><bpmn2:dataInputRefs>Task_ReleaseStockOrderFailed_ParameterInputX</bpmn2:dataInputRefs></bpmn2:inputSet>
+        <bpmn2:outputSet><bpmn2:dataOutputRefs>Task_ReleaseStockOrderFailed_ResultOutputX</bpmn2:dataOutputRefs></bpmn2:outputSet>
+      </bpmn2:ioSpecification>
+      <bpmn2:dataInputAssociation><bpmn2:sourceRef>checkout</bpmn2:sourceRef><bpmn2:targetRef>Task_ReleaseStockOrderFailed_ParameterInputX</bpmn2:targetRef></bpmn2:dataInputAssociation>
+      <bpmn2:dataOutputAssociation><bpmn2:sourceRef>Task_ReleaseStockOrderFailed_ResultOutputX</bpmn2:sourceRef><bpmn2:targetRef>checkout</bpmn2:targetRef></bpmn2:dataOutputAssociation>
+    </bpmn2:serviceTask>
+    <bpmn2:endEvent id="EndEvent_OrderFailed" name="Order Gagal Dibuat"><bpmn2:extensionElements><drools:metaData name="elementname"><drools:metaValue><![CDATA[Order Gagal Dibuat]]></drools:metaValue></drools:metaData></bpmn2:extensionElements><bpmn2:incoming>Flow_11</bpmn2:incoming></bpmn2:endEvent>
   </bpmn2:process>
   <bpmndi:BPMNDiagram id="Diagram_Checkout">
     <bpmndi:BPMNPlane id="Plane_Checkout" bpmnElement="checkout">
@@ -210,7 +250,11 @@
       <bpmndi:BPMNShape id="shape_EndEvent_InvalidCart" bpmnElement="EndEvent_InvalidCart"><dc:Bounds height="56" width="56" x="360" y="302"/></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="shape_EndEvent_OutOfStock" bpmnElement="EndEvent_OutOfStock"><dc:Bounds height="56" width="56" x="1000" y="302"/></bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="shape_Task_ReleaseStock" bpmnElement="Task_ReleaseStock"><dc:Bounds height="102" width="154" x="1481" y="290"/></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="shape_EndEvent_PaymentFailed" bpmnElement="EndEvent_PaymentFailed"><dc:Bounds height="56" width="56" x="1720" y="313"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_EndEvent_PaymentFailed" bpmnElement="EndEvent_PaymentFailed"><dc:Bounds height="56" width="56" x="1530" y="450"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Boundary_OrderFailed" bpmnElement="Boundary_OrderFailed"><dc:Bounds height="56" width="56" x="1742" y="173"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Task_RefundPayment" bpmnElement="Task_RefundPayment"><dc:Bounds height="102" width="154" x="1693" y="290"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Task_ReleaseStockOrderFailed" bpmnElement="Task_ReleaseStockOrderFailed"><dc:Bounds height="102" width="154" x="1903" y="290"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_EndEvent_OrderFailed" bpmnElement="EndEvent_OrderFailed"><dc:Bounds height="56" width="56" x="2113" y="313"/></bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="edge_Flow_1" bpmnElement="Flow_1"><di:waypoint x="96" y="150"/><di:waypoint x="150" y="150"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="edge_Flow_2" bpmnElement="Flow_2"><di:waypoint x="304" y="150"/><di:waypoint x="360" y="150"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="edge_Flow_CartValid_Yes" bpmnElement="Flow_CartValid_Yes"><di:waypoint x="416" y="150"/><di:waypoint x="470" y="150"/></bpmndi:BPMNEdge>
@@ -225,7 +269,10 @@
       <bpmndi:BPMNEdge id="edge_Flow_5" bpmnElement="Flow_5"><di:waypoint x="1474" y="150"/><di:waypoint x="1530" y="150"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="edge_Flow_Payment_Yes" bpmnElement="Flow_Payment_Yes"><di:waypoint x="1586" y="150"/><di:waypoint x="1640" y="150"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="edge_Flow_Payment_No" bpmnElement="Flow_Payment_No"><di:waypoint x="1558" y="178"/><di:waypoint x="1558" y="290"/></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="edge_Flow_6" bpmnElement="Flow_6"><di:waypoint x="1635" y="341"/><di:waypoint x="1720" y="341"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_6" bpmnElement="Flow_6"><di:waypoint x="1558" y="392"/><di:waypoint x="1558" y="450"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_OrderFailed" bpmnElement="Flow_OrderFailed"><di:waypoint x="1770" y="229"/><di:waypoint x="1770" y="290"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_10" bpmnElement="Flow_10"><di:waypoint x="1847" y="341"/><di:waypoint x="1903" y="341"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_11" bpmnElement="Flow_11"><di:waypoint x="2057" y="341"/><di:waypoint x="2113" y="341"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="edge_Flow_7" bpmnElement="Flow_7"><di:waypoint x="1794" y="150"/><di:waypoint x="1850" y="150"/></bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="edge_Flow_8" bpmnElement="Flow_8"><di:waypoint x="2004" y="150"/><di:waypoint x="2060" y="150"/></bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>

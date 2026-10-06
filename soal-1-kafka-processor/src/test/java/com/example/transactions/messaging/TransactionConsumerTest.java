@@ -1,16 +1,14 @@
 package com.example.transactions.messaging;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
 
-import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +23,9 @@ import com.example.transactions.service.TransactionProcessor;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult.Status;
 
+import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+
 @ExtendWith(MockitoExtension.class)
 class TransactionConsumerTest {
 
@@ -36,38 +37,53 @@ class TransactionConsumerTest {
     TransactionProcessor processor;
 
     @Mock
-    Emitter<EnrichedTransaction> enrichedEmitter;
+    MutinyEmitter<EnrichedTransaction> enrichedEmitter;
 
     @Mock
-    Emitter<RejectedTransaction> dlqEmitter;
+    MutinyEmitter<RejectedTransaction> dlqEmitter;
 
     @InjectMocks
     TransactionConsumer consumer;
 
     @Test
-    void processedTransactionIsSentToEnrichedTopic() {
+    @SuppressWarnings("unchecked")
+    void processedTransactionIsSentToEnrichedTopicKeyedByTransactionId() {
         when(processor.process("payload")).thenReturn(new ProcessingResult(Status.PROCESSED, TX, null));
-        when(enrichedEmitter.send(TX)).thenReturn(CompletableFuture.completedFuture(null));
 
         consumer.consume("payload");
 
-        verify(enrichedEmitter).send(TX);
-        verify(dlqEmitter, never()).send(any(RejectedTransaction.class));
+        ArgumentCaptor<KafkaRecord<String, EnrichedTransaction>> sent = ArgumentCaptor.forClass(KafkaRecord.class);
+        verify(enrichedEmitter).sendMessageAndAwait(sent.capture());
+        assertEquals("TRX-1", sent.getValue().getKey());
+        assertSame(TX, sent.getValue().getPayload());
+        verifyNoInteractions(dlqEmitter);
     }
 
     @Test
     void rejectedTransactionIsSentToDlqWithReason() {
         when(processor.process("bad"))
                 .thenReturn(new ProcessingResult(Status.REJECTED, null, "amount must be greater than 0"));
-        when(dlqEmitter.send(any(RejectedTransaction.class))).thenReturn(CompletableFuture.completedFuture(null));
 
         consumer.consume("bad");
 
         ArgumentCaptor<RejectedTransaction> sent = ArgumentCaptor.forClass(RejectedTransaction.class);
-        verify(dlqEmitter).send(sent.capture());
+        verify(dlqEmitter).sendAndAwait(sent.capture());
         assertEquals("bad", sent.getValue().rawPayload());
         assertEquals("amount must be greater than 0", sent.getValue().reason());
-        verify(enrichedEmitter, never()).send(any(EnrichedTransaction.class));
+        verifyNoInteractions(enrichedEmitter);
+    }
+
+    @Test
+    void unexpectedProcessingErrorIsSentToDlqInsteadOfStoppingTheConsumer() {
+        when(processor.process("boom")).thenThrow(new IllegalStateException("database unavailable"));
+
+        consumer.consume("boom");
+
+        ArgumentCaptor<RejectedTransaction> sent = ArgumentCaptor.forClass(RejectedTransaction.class);
+        verify(dlqEmitter).sendAndAwait(sent.capture());
+        assertEquals("boom", sent.getValue().rawPayload());
+        assertEquals("processing error: database unavailable", sent.getValue().reason());
+        verifyNoInteractions(enrichedEmitter);
     }
 
     @Test
@@ -77,7 +93,6 @@ class TransactionConsumerTest {
 
         consumer.consume("dup");
 
-        verify(enrichedEmitter, never()).send(any(EnrichedTransaction.class));
-        verify(dlqEmitter, never()).send(any(RejectedTransaction.class));
+        verifyNoInteractions(enrichedEmitter, dlqEmitter);
     }
 }

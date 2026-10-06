@@ -23,6 +23,9 @@ public class TransactionTransformer {
             "EUR", new BigDecimal("17500"));
 
     static final BigDecimal HIGH_RISK_THRESHOLD_IDR = new BigDecimal("10000000");
+    static final BigDecimal MAX_AMOUNT = new BigDecimal("1000000000000");
+    static final int MAX_ID_LENGTH = 64;
+    static final int MAX_TEXT_LENGTH = 255;
 
     private final Clock clock;
 
@@ -44,6 +47,9 @@ public class TransactionTransformer {
         }
 
         BigDecimal amountIdr = raw.amount().multiply(rate).setScale(0, RoundingMode.HALF_UP);
+        if (amountIdr.signum() == 0) {
+            throw new InvalidTransactionException("amount is below 1 IDR after conversion");
+        }
 
         return new EnrichedTransaction(
                 raw.transactionId().trim(),
@@ -76,11 +82,25 @@ public class TransactionTransformer {
         if (raw.amount() == null || raw.amount().signum() <= 0) {
             throw new InvalidTransactionException("amount must be greater than 0");
         }
+        if (raw.amount().compareTo(MAX_AMOUNT) > 0) {
+            throw new InvalidTransactionException("amount must not exceed " + MAX_AMOUNT.toPlainString());
+        }
         if (isBlank(raw.currency())) {
             throw new InvalidTransactionException("currency is required");
         }
         if (raw.timestamp() == null) {
             throw new InvalidTransactionException("timestamp is required");
+        }
+        requireMaxLength("transactionId", raw.transactionId(), MAX_ID_LENGTH);
+        requireMaxLength("customerId", raw.customerId(), MAX_TEXT_LENGTH);
+        requireMaxLength("merchant", raw.merchant(), MAX_TEXT_LENGTH);
+        requireMaxLength("customerEmail", raw.customerEmail(), MAX_TEXT_LENGTH);
+        requireMaxLength("paymentMethod", raw.paymentMethod(), MAX_TEXT_LENGTH);
+    }
+
+    private static void requireMaxLength(String field, String value, int max) {
+        if (value != null && value.trim().length() > max) {
+            throw new InvalidTransactionException(field + " must not exceed " + max + " characters");
         }
     }
 
@@ -106,7 +126,7 @@ public class TransactionTransformer {
         }
         String local = value.substring(0, at);
         String domain = value.substring(at);
-        int visible = local.length() <= 2 ? 1 : 2;
+        int visible = Math.min(2, local.length() - 1);
         return local.substring(0, visible) + "*".repeat(local.length() - visible) + domain;
     }
 

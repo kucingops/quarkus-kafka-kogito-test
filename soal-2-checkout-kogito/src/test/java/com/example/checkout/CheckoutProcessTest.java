@@ -11,6 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.kie.kogito.Model;
@@ -22,9 +26,11 @@ import com.example.checkout.model.Checkout;
 import com.example.checkout.model.CheckoutStatus;
 import com.example.checkout.persistence.CheckoutRequestEntity;
 import com.example.checkout.persistence.OrderEntity;
+import com.example.checkout.service.OrderService;
 import com.example.checkout.service.ProductCatalog;
 
 import io.quarkus.narayana.jta.QuarkusTransaction;
+import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -160,6 +166,49 @@ class CheckoutProcessTest {
     }
 
     @Test
+    void unsupportedPaymentMethod_isRejectedBeforeStockIsReserved() {
+        Checkout result = run(request("CRYPTO", new CartItem("SKU-001", 1)));
+
+        assertEquals(CheckoutStatus.REJECTED_INVALID_CART, result.getStatus());
+        assertEquals("unsupported payment method: CRYPTO", result.getFailureReason());
+        assertEquals(10, catalog.stockOf("SKU-001"));
+    }
+
+    @Test
+    void orderCreationFailure_refundsPaymentAndReleasesStock() {
+        OrderService failing = mock(OrderService.class);
+        when(failing.createOrder(any(Checkout.class))).thenThrow(new IllegalStateException("database unavailable"));
+        QuarkusMock.installMockForType(failing, OrderService.class);
+
+        Checkout result = run(request("BANK_TRANSFER", new CartItem("SKU-001", 2)));
+
+        assertEquals(CheckoutStatus.ORDER_FAILED, result.getStatus());
+        assertTrue(result.isPaymentRefunded());
+        assertTrue(result.getFailureReason().contains(result.getPaymentReference()));
+        assertFalse(result.isStockReserved());
+        assertFalse(result.isNotificationSent());
+        assertNull(result.getOrderNumber());
+        assertEquals(10, catalog.stockOf("SKU-001"));
+        assertEquals(0, orderCount());
+    }
+
+    @Test
+    void createdOrderStoresItsLineItems() {
+        Checkout result = run(request("BANK_TRANSFER",
+                new CartItem("SKU-001", 2),
+                new CartItem("SKU-002", 1)));
+
+        OrderEntity order = QuarkusTransaction.requiringNew()
+                .call(() -> OrderEntity.findByOrderNumber(result.getOrderNumber()));
+        assertEquals(2, order.items.size());
+        assertEquals("SKU-001", order.items.get(0).sku);
+        assertEquals("Kaos Polos", order.items.get(0).productName);
+        assertEquals(2, order.items.get(0).quantity);
+        assertEquals(150_000, order.items.get(0).lineTotal);
+        assertEquals("SKU-002", order.items.get(1).sku);
+    }
+
+    @Test
     void concurrentCheckouts_neverOversellStock() throws Exception {
         int buyers = 20;
         int stock = catalog.stockOf("SKU-004");
@@ -181,10 +230,12 @@ class CheckoutProcessTest {
         Checkout second = request("BANK_TRANSFER", new CartItem("SKU-001", 2));
         second.setRequestId("REQ-001");
 
-        assertEquals(CheckoutStatus.COMPLETED, run(first).getStatus());
+        Checkout original = run(first);
+        assertEquals(CheckoutStatus.COMPLETED, original.getStatus());
         Checkout result = run(second);
 
         assertEquals(CheckoutStatus.REJECTED_DUPLICATE_REQUEST, result.getStatus());
+        assertEquals(original.getOrderNumber(), result.getOrderNumber());
         assertEquals("duplicate request: REQ-001", result.getFailureReason());
         assertTrue(result.isDuplicateRequest());
         assertFalse(result.isStockReserved());
@@ -198,6 +249,19 @@ class CheckoutProcessTest {
         first.setRequestId("REQ-A");
         Checkout second = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
         second.setRequestId("REQ-B");
+
+        assertEquals(CheckoutStatus.COMPLETED, run(first).getStatus());
+        assertEquals(CheckoutStatus.COMPLETED, run(second).getStatus());
+        assertEquals(2, orderCount());
+    }
+
+    @Test
+    void sameRequestIdFromDifferentCustomers_isNotADuplicate() {
+        Checkout first = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        first.setRequestId("REQ-SHARED");
+        Checkout second = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        second.setRequestId("REQ-SHARED");
+        second.setCustomerId("CUST-02");
 
         assertEquals(CheckoutStatus.COMPLETED, run(first).getStatus());
         assertEquals(CheckoutStatus.COMPLETED, run(second).getStatus());

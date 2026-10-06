@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 import org.hibernate.Session;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
@@ -12,11 +13,13 @@ import org.jboss.logging.Logger;
 import com.example.checkout.model.CartItem;
 import com.example.checkout.model.Checkout;
 import com.example.checkout.persistence.OrderEntity;
+import com.example.checkout.persistence.OrderItem;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
 
 @ApplicationScoped
 public class OrderService {
@@ -29,11 +32,13 @@ public class OrderService {
     @Inject
     EntityManager em;
 
-    @Transactional
+    @Transactional(TxType.REQUIRES_NEW)
     public Checkout createOrder(Checkout checkout) {
         OrderEntity order = new OrderEntity();
         order.orderNumber = nextOrderNumber();
         order.customerId = checkout.getCustomerId();
+        order.requestId = IdempotencyService.normalize(checkout.getRequestId());
+        order.items = checkout.getItems().stream().map(OrderItem::from).collect(Collectors.toList());
         order.itemCount = checkout.getItems().stream().mapToInt(CartItem::getQuantity).sum();
         order.subtotal = checkout.getSubtotal();
         order.shippingFee = checkout.getShippingFee();

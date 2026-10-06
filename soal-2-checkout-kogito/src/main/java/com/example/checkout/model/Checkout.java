@@ -26,6 +26,7 @@ public class Checkout {
     private long total;
 
     private String paymentReference;
+    private boolean paymentRefunded;
     private String orderNumber;
     private boolean notificationSent;
 
@@ -171,6 +172,14 @@ public class Checkout {
 
     public void setPaymentReference(String paymentReference) {
         this.paymentReference = paymentReference;
+    }
+
+    public boolean isPaymentRefunded() {
+        return paymentRefunded;
+    }
+
+    public void setPaymentRefunded(boolean paymentRefunded) {
+        this.paymentRefunded = paymentRefunded;
     }
 
     public String getOrderNumber() {

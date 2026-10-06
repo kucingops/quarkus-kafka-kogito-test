@@ -8,14 +8,21 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.example.checkout.persistence.CheckoutRequestEntity;
+import com.example.checkout.model.Checkout;
 import com.example.checkout.persistence.OrderEntity;
+import com.example.checkout.service.OrderService;
 import com.example.checkout.service.ProductCatalog;
 
 import io.quarkus.narayana.jta.QuarkusTransaction;
+import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
@@ -61,7 +68,11 @@ class CheckoutRestTest {
         given().when().get("/orders/" + orderNumber)
                 .then().statusCode(200)
                 .body("customerId", equalTo("CUST-77"))
-                .body("total", equalTo(500_000));
+                .body("total", equalTo(500_000))
+                .body("items", hasSize(1))
+                .body("items[0].sku", equalTo("SKU-002"))
+                .body("items[0].quantity", equalTo(2))
+                .body("items[0].lineTotal", equalTo(500_000));
 
         given().when().get("/orders").then().statusCode(200).body("$", hasSize(1));
     }
@@ -83,6 +94,28 @@ class CheckoutRestTest {
     }
 
     @Test
+    void postCheckout_orderCreationFails_returnsOrderFailedAndRestoresStock() {
+        OrderService failing = mock(OrderService.class);
+        when(failing.createOrder(any(Checkout.class))).thenThrow(new IllegalStateException("database unavailable"));
+        QuarkusMock.installMockForType(failing, OrderService.class);
+        String body = """
+                { "checkout": { "customerId": "CUST-80", "paymentMethod": "COD",
+                                "items": [ { "sku": "SKU-002", "quantity": 2 } ] } }
+                """;
+
+        given().contentType(ContentType.JSON).accept(ContentType.JSON).body(body)
+                .when().post("/checkout")
+                .then()
+                .statusCode(anyOf(is(200), is(201)))
+                .body("checkout.status", equalTo("ORDER_FAILED"))
+                .body("checkout.paymentRefunded", equalTo(true))
+                .body("checkout.stockReserved", equalTo(false));
+
+        given().when().get("/products").then().statusCode(200).body("[1].stock", equalTo(5));
+        given().when().get("/orders").then().statusCode(200).body("$", hasSize(0));
+    }
+
+    @Test
     void postCheckout_sameRequestIdTwice_secondIsRejectedAsDuplicate() {
         String body = """
                 { "checkout": { "requestId": "REQ-REST-1", "customerId": "CUST-79", "paymentMethod": "COD",
@@ -99,7 +132,8 @@ class CheckoutRestTest {
                 .when().post("/checkout")
                 .then()
                 .statusCode(anyOf(is(200), is(201)))
-                .body("checkout.status", equalTo("REJECTED_DUPLICATE_REQUEST"));
+                .body("checkout.status", equalTo("REJECTED_DUPLICATE_REQUEST"))
+                .body("checkout.orderNumber", startsWith("ORD-"));
 
         given().when().get("/orders").then().statusCode(200).body("$", hasSize(1));
     }
