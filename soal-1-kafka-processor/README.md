@@ -63,7 +63,7 @@ Catatan singkat:
 
 ## Cara menjalankan
 
-Prasyarat: JDK 17, Maven 3.9+, dan Podman. Quarkus Dev Services otomatis menyalakan container Kafka, cukup arahkan ke socket Podman dulu:
+Prasyarat: JDK 17, Maven 3.9+, dan Podman. Di dev mode Quarkus Dev Services otomatis menyalakan container broker, cukup arahkan ke socket Podman dulu:
 
 ```bash
 systemctl --user enable --now podman.socket
@@ -85,6 +85,14 @@ curl "localhost:8080/transactions?highRisk=true"
 ```
 
 Isi topic Kafka bisa dilihat di Dev UI: http://localhost:8080/q/dev-ui
+
+Broker yang dipakai tergantung cara menjalankannya:
+
+| Cara jalan | Broker | Dinyalakan oleh |
+|---|---|---|
+| `mvn quarkus:dev` | Redpanda (kompatibel protokol Kafka) | Quarkus Dev Services |
+| `mvn test -Dtest=KafkaContainerIT` | `apache/kafka:3.8.0` | `KafkaContainerResource` (Testcontainers) |
+| Profil prod (jar) | `apache/kafka:3.8.0` di `localhost:9092` | `docker-compose.yml` di root repo |
 
 | Method | Path | Fungsi |
 |---|---|---|
@@ -110,7 +118,7 @@ mvn test
 | `TransactionConsumerTest` | Processor, emitter Kafka | Hasil valid ke topic output, yang ditolak ke DLQ, duplikat tidak dikirim |
 | `TransactionResourceTest` | Repository, emitter Kafka | Endpoint publish, list, detail, dan 404 |
 
-**Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Kafka sungguhan di dalam container (dinyalakan otomatis oleh Quarkus Dev Services lewat Testcontainers). Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database.
+**Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Apache Kafka sungguhan di dalam container. `KafkaContainerResource` menyalakan image `apache/kafka:3.8.0` (sama dengan `docker-compose.yml`) lewat Testcontainers, lalu mengisi `kafka.bootstrap.servers` dengan alamat container itu. Dev Services dimatikan di profil test (`%test.quarkus.kafka.devservices.enabled=false`) supaya tidak ada broker kedua. Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database.
 
 Pastikan variabel Podman di bagian "Cara menjalankan" sudah di-set, lalu:
 

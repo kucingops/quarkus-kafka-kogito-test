@@ -19,11 +19,11 @@ Repo ini berisi jawaban dua soal. Masing-masing adalah project Quarkus terpisah 
 
 - JDK 17
 - Maven 3.9+
-- Podman, hanya untuk menjalankan Soal 1 dan container test-nya (Quarkus otomatis menyalakan Kafka). `mvn test` di kedua soal tidak butuh Podman.
+- Podman, hanya untuk Soal 1: `mvn quarkus:dev` dan container test-nya sama-sama menyalakan broker Kafka di container. `mvn test` di kedua soal tidak butuh Podman.
 
 ## Setup Podman
 
-Quarkus menyalakan Kafka lewat Testcontainers, yang berbicara ke Podman melalui socket. Jalankan sekali di terminal yang dipakai untuk Soal 1:
+Container broker dinyalakan lewat Testcontainers, yang berbicara ke Podman melalui socket. Jalankan sekali di terminal yang dipakai untuk Soal 1:
 
 ```bash
 systemctl --user enable --now podman.socket
@@ -36,7 +36,7 @@ export TESTCONTAINERS_RYUK_DISABLED=true
 ```bash
 # Test
 (cd soal-1-kafka-processor && mvn test)                          # unit test (Mockito)
-(cd soal-1-kafka-processor && mvn test -Dtest=KafkaContainerIT)  # container test, butuh Podman
+(cd soal-1-kafka-processor && mvn test -Dtest=KafkaContainerIT)  # container test (Apache Kafka), butuh Podman
 (cd soal-2-checkout-kogito && mvn test)                          # unit test (Mockito) + test proses BPMN
 
 # Soal 1 -> http://localhost:8080

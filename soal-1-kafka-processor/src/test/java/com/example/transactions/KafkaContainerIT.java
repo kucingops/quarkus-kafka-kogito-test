@@ -25,10 +25,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.quarkus.narayana.jta.QuarkusTransaction;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 
 @QuarkusTest
+@QuarkusTestResource(value = KafkaContainerResource.class, restrictToAnnotatedClass = true)
 class KafkaContainerIT {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
