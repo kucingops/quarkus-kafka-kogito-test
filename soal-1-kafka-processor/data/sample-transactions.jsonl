@@ -1,0 +1,9 @@
+{"transactionId":"TRX-1001","customerId":"CUST-01","customerEmail":"budi.santoso@gmail.com","merchant":"  toko   maju jaya ","amount":75000,"currency":"idr","paymentMethod":"e-wallet","timestamp":"2026-10-01T08:15:00Z"}
+{"transactionId":"TRX-1002","customerId":"CUST-02","customerEmail":"siti@yahoo.com","merchant":"Gadget Corner","amount":45.5,"currency":"USD","paymentMethod":"credit card","timestamp":"2026-10-01T09:30:00Z"}
+{"transactionId":"TRX-1003","customerId":"CUST-03","customerEmail":"andi.w@outlook.com","merchant":"elektronik   sejahtera","amount":1250,"currency":"SGD","paymentMethod":"bank-transfer","timestamp":"2026-10-01T10:45:00Z"}
+{"transactionId":"TRX-1004","customerId":"CUST-01","customerEmail":"budi.santoso@gmail.com","merchant":"Fashion Hub","amount":350000,"currency":"IDR","paymentMethod":"COD","timestamp":"2026-10-01T11:00:00Z"}
+{"transactionId":"TRX-1005","customerId":"CUST-04","customerEmail":"rina@gmail.com","merchant":"Luxury Watch ID","amount":1200,"currency":"EUR","paymentMethod":"credit card","timestamp":"2026-10-01T13:20:00Z"}
+{"transactionId":"TRX-1006","customerId":"CUST-05","customerEmail":"dewi@gmail.com","merchant":"Toko Buku Ilmu","amount":-5000,"currency":"IDR","paymentMethod":"e-wallet","timestamp":"2026-10-01T14:00:00Z"}
+{"transactionId":"TRX-1007","customerId":"CUST-06","customerEmail":"joko@gmail.com","merchant":"Kedai Kopi","amount":30000,"currency":"JPY","paymentMethod":"e-wallet","timestamp":"2026-10-01T15:10:00Z"}
+{"transactionId":"TRX-1001","customerId":"CUST-01","customerEmail":"budi.santoso@gmail.com","merchant":"  toko   maju jaya ","amount":75000,"currency":"idr","paymentMethod":"e-wallet","timestamp":"2026-10-01T08:15:00Z"}
+{"transactionId":"TRX-1008", "this is not valid json"

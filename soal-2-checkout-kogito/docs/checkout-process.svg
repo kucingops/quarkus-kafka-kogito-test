@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2196 482" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#333"/></marker></defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<path d="M116 170 L170 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M324 170 L380 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M436 170 L490 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="463" y="162" text-anchor="middle" fill="#1b7f3b" font-weight="bold">Ya</text>
+<path d="M408 198 L408 322" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="416" y="260" text-anchor="start" fill="#b3261e" font-weight="bold">Tidak</text>
+<path d="M644 170 L700 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M756 170 L810 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="783" y="162" text-anchor="middle" fill="#1b7f3b" font-weight="bold">Ya</text>
+<path d="M728 198 L728 322" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="736" y="260" text-anchor="start" fill="#b3261e" font-weight="bold">Tidak</text>
+<path d="M964 170 L1020 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1076 170 L1130 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="1103" y="162" text-anchor="middle" fill="#1b7f3b" font-weight="bold">Ya</text>
+<path d="M1048 198 L1048 322" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="1056" y="260" text-anchor="start" fill="#b3261e" font-weight="bold">Tidak</text>
+<path d="M1284 170 L1340 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1494 170 L1550 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1606 170 L1660 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="1633" y="162" text-anchor="middle" fill="#1b7f3b" font-weight="bold">Ya</text>
+<path d="M1578 198 L1578 310" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="1586" y="254" text-anchor="start" fill="#b3261e" font-weight="bold">Tidak</text>
+<path d="M1655 361 L1740 361" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M1814 170 L1870 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<path d="M2024 170 L2080 170" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+<circle cx="88.0" cy="170.0" r="28.0" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+<text x="88.0" y="214" text-anchor="middle" fill="#222">Checkout diminta</text>
+<rect x="170.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="184.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="247.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Validasi Keranjang</text>
+<text x="247.0" y="195" text-anchor="middle" fill="#555" font-size="11">CartService</text>
+<text x="247.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">validateCart()</text>
+<polygon points="408.0,142.0 436.0,170.0 408.0,198.0 380.0,170.0" fill="#fff8e1" stroke="#f9a825" stroke-width="2"/>
+<path d="M399.0 161.0 L417.0 179.0 M417.0 161.0 L399.0 179.0" stroke="#8d6e00" stroke-width="3"/>
+<text x="408.0" y="118" text-anchor="middle" fill="#222">Keranjang</text>
+<text x="408.0" y="132" text-anchor="middle" fill="#222">valid?</text>
+<rect x="490.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="504.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="567.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Cek Request Duplikat</text>
+<text x="567.0" y="195" text-anchor="middle" fill="#555" font-size="11">IdempotencyService</text>
+<text x="567.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">checkDuplicate()</text>
+<polygon points="728.0,142.0 756.0,170.0 728.0,198.0 700.0,170.0" fill="#fff8e1" stroke="#f9a825" stroke-width="2"/>
+<path d="M719.0 161.0 L737.0 179.0 M737.0 161.0 L719.0 179.0" stroke="#8d6e00" stroke-width="3"/>
+<text x="728.0" y="132" text-anchor="middle" fill="#222">Request baru?</text>
+<rect x="810.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="824.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="887.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Reservasi Stok</text>
+<text x="887.0" y="195" text-anchor="middle" fill="#555" font-size="11">InventoryService</text>
+<text x="887.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">reserveStock()</text>
+<polygon points="1048.0,142.0 1076.0,170.0 1048.0,198.0 1020.0,170.0" fill="#fff8e1" stroke="#f9a825" stroke-width="2"/>
+<path d="M1039.0 161.0 L1057.0 179.0 M1057.0 161.0 L1039.0 179.0" stroke="#8d6e00" stroke-width="3"/>
+<text x="1048.0" y="132" text-anchor="middle" fill="#222">Stok tersedia?</text>
+<rect x="1130.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="1144.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1207.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Hitung Total</text>
+<text x="1207.0" y="195" text-anchor="middle" fill="#555" font-size="11">PricingService</text>
+<text x="1207.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">calculateTotal()</text>
+<rect x="1340.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="1354.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1417.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Proses Pembayaran</text>
+<text x="1417.0" y="195" text-anchor="middle" fill="#555" font-size="11">PaymentService</text>
+<text x="1417.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">processPayment()</text>
+<polygon points="1578.0,142.0 1606.0,170.0 1578.0,198.0 1550.0,170.0" fill="#fff8e1" stroke="#f9a825" stroke-width="2"/>
+<path d="M1569.0 161.0 L1587.0 179.0 M1587.0 161.0 L1569.0 179.0" stroke="#8d6e00" stroke-width="3"/>
+<text x="1578.0" y="118" text-anchor="middle" fill="#222">Pembayaran</text>
+<text x="1578.0" y="132" text-anchor="middle" fill="#222">berhasil?</text>
+<rect x="1660.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="1674.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1737.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Buat Order</text>
+<text x="1737.0" y="195" text-anchor="middle" fill="#555" font-size="11">OrderService</text>
+<text x="1737.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">createOrder()</text>
+<rect x="1870.0" y="119.0" width="154.0" height="102.0" rx="10" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+<circle cx="1884.0" cy="133.0" r="6" fill="none" stroke="#1565c0" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1947.0" y="160" text-anchor="middle" font-weight="bold" font-size="13">Kirim Notifikasi</text>
+<text x="1947.0" y="195" text-anchor="middle" fill="#555" font-size="11">NotificationService</text>
+<text x="1947.0" y="209" text-anchor="middle" fill="#555" font-size="11" font-style="italic">sendOrderConfirmation()</text>
+<circle cx="2108.0" cy="170.0" r="28.0" fill="#e8f5e9" stroke="#2e7d32" stroke-width="4"/>
+<text x="2108.0" y="214" text-anchor="middle" fill="#222">Checkout Selesai</text>
+<circle cx="408.0" cy="350.0" r="28.0" fill="#fdecea" stroke="#b3261e" stroke-width="4"/>
+<text x="408.0" y="394" text-anchor="middle" fill="#222">Ditolak: Keranjang</text>
+<text x="408.0" y="408" text-anchor="middle" fill="#222">Tidak Valid</text>
+<circle cx="728.0" cy="350.0" r="28.0" fill="#fdecea" stroke="#b3261e" stroke-width="4"/>
+<text x="728.0" y="394" text-anchor="middle" fill="#222">Ditolak: Request</text>
+<text x="728.0" y="408" text-anchor="middle" fill="#222">Duplikat</text>
+<circle cx="1048.0" cy="350.0" r="28.0" fill="#fdecea" stroke="#b3261e" stroke-width="4"/>
+<text x="1048.0" y="394" text-anchor="middle" fill="#222">Ditolak: Stok Habis</text>
+<rect x="1501.0" y="310.0" width="154.0" height="102.0" rx="10" fill="#fdecea" stroke="#b3261e" stroke-width="2"/>
+<circle cx="1515.0" cy="324.0" r="6" fill="none" stroke="#b3261e" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="1578.0" y="343" text-anchor="middle" font-weight="bold" font-size="13">Rilis Stok</text>
+<text x="1578.0" y="359" text-anchor="middle" font-weight="bold" font-size="13">(Kompensasi)</text>
+<text x="1578.0" y="386" text-anchor="middle" fill="#555" font-size="11">InventoryService</text>
+<text x="1578.0" y="400" text-anchor="middle" fill="#555" font-size="11" font-style="italic">releaseStock()</text>
+<circle cx="1768.0" cy="361.0" r="28.0" fill="#fdecea" stroke="#b3261e" stroke-width="4"/>
+<text x="1768.0" y="405" text-anchor="middle" fill="#222">Pembayaran Gagal</text>
+</svg>
