@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.transactions.model.AmountCategory;
 import com.example.transactions.persistence.TransactionEntity;
-import com.example.transactions.persistence.TransactionRepository;
+import com.example.transactions.repository.TransactionRepository;
 
 import jakarta.ws.rs.NotFoundException;
 

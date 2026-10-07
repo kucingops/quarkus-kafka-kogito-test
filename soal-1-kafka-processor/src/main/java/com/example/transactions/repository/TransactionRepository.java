@@ -1,8 +1,9 @@
-package com.example.transactions.persistence;
+package com.example.transactions.repository;
 
 import java.util.List;
 
 import com.example.transactions.model.AmountCategory;
+import com.example.transactions.persistence.TransactionEntity;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Sort;
@@ -27,7 +28,7 @@ public class TransactionRepository implements PanacheRepositoryBase<TransactionE
 
     public List<CategorySummary> summarizeByCategory() {
         return getEntityManager()
-                .createQuery("select new com.example.transactions.persistence.CategorySummary("
+                .createQuery("select new com.example.transactions.repository.CategorySummary("
                         + "t.category, count(t), sum(t.amountIdr)) "
                         + "from TransactionEntity t group by t.category order by t.category",
                         CategorySummary.class)

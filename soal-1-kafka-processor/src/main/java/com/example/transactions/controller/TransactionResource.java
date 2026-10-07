@@ -6,9 +6,9 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 import com.example.transactions.model.AmountCategory;
-import com.example.transactions.persistence.CategorySummary;
 import com.example.transactions.persistence.TransactionEntity;
-import com.example.transactions.persistence.TransactionRepository;
+import com.example.transactions.repository.CategorySummary;
+import com.example.transactions.repository.TransactionRepository;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;

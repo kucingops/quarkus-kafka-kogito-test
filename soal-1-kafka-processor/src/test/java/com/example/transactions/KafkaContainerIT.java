@@ -20,7 +20,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.junit.jupiter.api.Test;
 
 import com.example.transactions.persistence.TransactionEntity;
-import com.example.transactions.persistence.TransactionRepository;
+import com.example.transactions.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

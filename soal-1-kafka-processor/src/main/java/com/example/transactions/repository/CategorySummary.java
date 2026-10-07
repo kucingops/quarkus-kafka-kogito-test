@@ -1,4 +1,4 @@
-package com.example.transactions.persistence;
+package com.example.transactions.repository;
 
 import java.math.BigDecimal;
 

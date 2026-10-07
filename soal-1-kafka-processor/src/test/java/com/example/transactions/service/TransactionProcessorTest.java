@@ -24,7 +24,7 @@ import com.example.transactions.model.AmountCategory;
 import com.example.transactions.model.EnrichedTransaction;
 import com.example.transactions.model.RawTransaction;
 import com.example.transactions.persistence.TransactionEntity;
-import com.example.transactions.persistence.TransactionRepository;
+import com.example.transactions.repository.TransactionRepository;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult.Status;
 import com.fasterxml.jackson.databind.ObjectMapper;
