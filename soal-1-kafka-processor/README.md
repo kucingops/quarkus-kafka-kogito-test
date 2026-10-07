@@ -144,28 +144,28 @@ Test ini tidak ikut jalan di `mvn test` biasa karena nama class-nya berakhiran `
 ```
 src/main/java/com/example/transactions
 ├── controller/
-│   └── TransactionResource.java          # REST /transactions
+│   └── TransactionResource.java          # endpoint /transactions
 ├── service/
 │   ├── TransactionProcessor.java         # parse, transform, simpan
-│   ├── TransactionTransformer.java       # inti manipulasi data
-│   └── InvalidTransactionException.java  # data tidak valid -> DLQ
+│   ├── TransactionTransformer.java       # membersihkan & melengkapi data
+│   └── InvalidTransactionException.java  # penanda data tidak valid
 ├── repository/
-│   ├── TransactionRepository.java        # semua query ke tabel transactions
-│   └── CategorySummary.java              # hasil query ringkasan per kategori
+│   ├── TransactionRepository.java        # baca & simpan data transaksi
+│   └── CategorySummary.java              # ringkasan per kategori
 ├── entity/
-│   └── TransactionEntity.java            # entity tabel transactions
+│   └── TransactionEntity.java            # tabel transactions
 ├── model/
 │   ├── RawTransaction.java               # pesan masuk dari Kafka
 │   ├── EnrichedTransaction.java          # hasil transformasi
-│   ├── RejectedTransaction.java          # pesan ke DLQ
-│   └── AmountCategory.java               # kategori nominal
+│   ├── RejectedTransaction.java          # data yang ditolak
+│   └── AmountCategory.java               # kategori besar-kecilnya nominal
 └── messaging/
-    └── TransactionConsumer.java          # consumer Kafka + pengirim ke topic output/DLQ
+    └── TransactionConsumer.java          # terima & kirim pesan Kafka
 
-src/test/java/com/example/transactions    # struktur package sama dengan main
-├── controller/  service/  messaging/     # unit test (Mockito)
+src/test/java/com/example/transactions    # test, foldernya mengikuti kode utama
+├── controller/  service/  messaging/     # test per bagian
 ├── TransactionTransformerTest.java
-└── KafkaContainerIT.java, KafkaContainerResource.java   # container test
+└── KafkaContainerIT.java, KafkaContainerResource.java   # test dengan Kafka sungguhan
 ```
 
-Controller dan service tidak mengakses database secara langsung; semua query lewat `TransactionRepository`.
+Hanya `TransactionRepository` yang berhubungan langsung dengan database.

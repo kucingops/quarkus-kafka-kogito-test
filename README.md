@@ -19,20 +19,20 @@ Keduanya adalah prototipe untuk tech test, bukan aplikasi produksi. H2 in-memory
 - Kogito / jBPM 10.1.0
 - H2 in-memory + Hibernate ORM Panache
 
-## Struktur package
+## Struktur folder
 
-Kedua soal memakai pembagian package yang sama di bawah `com.example.<soal>`:
+Kedua soal memakai pembagian folder yang sama:
 
-| Package | Isi |
+| Folder | Isi |
 |---|---|
-| `controller` | REST resource (JAX-RS) |
-| `service` | logika bisnis |
-| `repository` | satu-satunya lapisan yang mengakses database (Panache repository) |
-| `entity` | entity JPA |
-| `model` | DTO / objek domain |
-| `messaging` | consumer dan producer Kafka (Soal 1) |
+| `controller` | Endpoint API yang dipanggil dari luar |
+| `service` | Logika utama aplikasi |
+| `repository` | Semua proses baca dan tulis ke database |
+| `entity` | Bentuk tabel database |
+| `model` | Bentuk data yang dikirim dan diterima |
+| `messaging` | Kirim dan terima pesan Kafka (khusus Soal 1) |
 
-Semua query dan operasi simpan/hapus lewat class di `repository`; entity hanya berisi mapping tabel, dan service maupun controller tidak memakai `EntityManager` atau method static Panache secara langsung. Rincian file per soal ada di bagian "Struktur kode" README masing-masing.
+Hanya `repository` yang berhubungan langsung dengan database; bagian lain cukup memanggil repository. Daftar file lengkapnya ada di bagian "Struktur kode" README masing-masing soal.
 
 ## Prasyarat
 
@@ -65,6 +65,6 @@ cd soal-1-kafka-processor && mvn quarkus:dev
 cd soal-2-checkout-kogito && mvn quarkus:dev
 ```
 
-Test kedua soal juga dijalankan otomatis oleh GitHub Actions setiap ada push (workflow `.github/workflows/test.yml`); hasilnya bisa dilihat di tab **Actions** repo ini. `KafkaContainerIT` tidak ikut di CI, sama seperti `mvn test` biasa.
+Setiap ada perubahan yang di-push, test kedua soal otomatis dijalankan di GitHub. Hasilnya terlihat dari badge di atas, atau di tab **Actions** repo ini. Test yang butuh Kafka sungguhan (`KafkaContainerIT`) tidak ikut dijalankan di sana.
 
 Detail tiap soal ada di README masing-masing folder.

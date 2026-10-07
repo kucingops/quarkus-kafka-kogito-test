@@ -77,7 +77,7 @@ Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `Atomi
 
 | Risiko | Penjagaan |
 |---|---|
-| Stok terjual melebihi persediaan (oversell) | Reservasi (`ProductRepository.decreaseStock`) memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Cek stok dan pengurangannya ada di statement yang sama, bukan baca-lalu-tulis dari Java. Kalau tidak ada baris yang ter-update, stok dianggap kurang. Dibuktikan oleh test konkurensi di `ProductCatalogTest` dan `CheckoutProcessTest` |
+| Stok terjual melebihi persediaan (oversell) | Reservasi stok (di `ProductRepository`) memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Cek stok dan pengurangannya ada di statement yang sama, bukan baca-lalu-tulis dari Java. Kalau tidak ada baris yang ter-update, stok dianggap kurang. Dibuktikan oleh test konkurensi di `ProductCatalogTest` dan `CheckoutProcessTest` |
 | Reservasi parsial untuk keranjang multi-SKU | Semua SKU di-update dalam satu transaksi. Satu SKU gagal, seluruhnya di-rollback |
 | Deadlock antar-checkout | SKU selalu di-update dalam urutan yang sama (di-sort lewat `TreeMap`) |
 | Request yang sama terkirim dua kali (klik ganda, retry) | Client mengirim `requestId`. Pasangan `customer_id` + `request_id` punya unique constraint, jadi dari beberapa request bersamaan hanya satu yang berhasil mengklaim; sisanya berakhir di `REJECTED_DUPLICATE_REQUEST` sebelum stok dan pembayaran tersentuh |
@@ -85,7 +85,7 @@ Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `Atomi
 
 ### Transaksi
 
-BPMN hanya mengatur alur. Service di balik tiap Service Task mengatur batas transaksinya, sedangkan query dan operasi simpan ada di repository (`ProductRepository`, `OrderRepository`, `CheckoutRequestRepository`):
+BPMN hanya mengatur alur. Tiap langkahnya dikerjakan oleh service, dan service memanggil repository (`ProductRepository`, `OrderRepository`, `CheckoutRequestRepository`) untuk membaca atau menyimpan data. Pengaturan transaksinya:
 
 | Class | Method | Transaksi |
 |---|---|---|
@@ -215,36 +215,36 @@ src/main/resources/com/example/checkout/checkout.bpmn   # diagram + definisi pro
 src/main/resources/import.sql                           # sequence nomor order
 src/main/java/com/example/checkout
 ├── controller/
-│   └── StoreResource.java              # REST /products, /orders
-├── service/                            # implementasi tiap Service Task
+│   └── StoreResource.java              # endpoint /products, /orders
+├── service/                            # isi tiap langkah di diagram BPMN
 │   ├── CartService.java                # validasi keranjang
 │   ├── IdempotencyService.java         # cek request duplikat
 │   ├── InventoryService.java           # reservasi & rilis stok
 │   ├── PricingService.java             # hitung total
-│   ├── PaymentService.java             # bayar & refund (simulasi)
+│   ├── PaymentService.java             # bayar & refund (tiruan, bukan pembayaran asli)
 │   ├── OrderService.java               # buat order
 │   ├── NotificationService.java        # notifikasi (log)
-│   └── ProductCatalog.java             # katalog & stok produk
-├── repository/                         # semua query ke database
-│   ├── ProductRepository.java          # stok: baca, kurangi atomik, kembalikan
-│   ├── OrderRepository.java            # order + sequence nomor order
-│   └── CheckoutRequestRepository.java  # klaim requestId
-├── entity/
+│   └── ProductCatalog.java             # daftar produk & stok
+├── repository/                         # baca & tulis database
+│   ├── ProductRepository.java          # cek, kurangi, dan kembalikan stok
+│   ├── OrderRepository.java            # simpan order & buat nomor order
+│   └── CheckoutRequestRepository.java  # catat request agar tidak dobel
+├── entity/                             # tabel database
 │   ├── ProductEntity.java              # tabel products
 │   ├── OrderEntity.java                # tabel orders
 │   ├── OrderItem.java                  # tabel order_items
 │   └── CheckoutRequestEntity.java      # tabel checkout_requests
 └── model/
-    ├── Checkout.java                   # variabel proses BPMN
+    ├── Checkout.java                   # data checkout selama proses
     ├── CartItem.java
     └── CheckoutStatus.java
 
 src/test/java/com/example/checkout
-├── service/                            # unit test (Mockito) + ProductCatalogTest
-├── CheckoutProcessTest.java            # test proses BPMN
+├── service/                            # test tiap service
+├── CheckoutProcessTest.java            # test alur checkout
 ├── CheckoutRestTest.java               # test endpoint REST
-└── ConcurrentRunner.java               # helper test konkurensi
+└── ConcurrentRunner.java               # alat bantu test banyak request sekaligus
 docs/                                   # ilustrasi diagram (png/svg)
 ```
 
-Controller dan service tidak mengakses database secara langsung; semua query lewat class di `repository`.
+Hanya class di `repository` yang berhubungan langsung dengan database.
