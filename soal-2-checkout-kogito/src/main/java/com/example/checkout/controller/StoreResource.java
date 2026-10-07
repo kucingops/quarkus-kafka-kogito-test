@@ -1,4 +1,4 @@
-package com.example.checkout.api;
+package com.example.checkout.controller;
 
 import java.util.Collection;
 import java.util.List;

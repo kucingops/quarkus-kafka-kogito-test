@@ -147,6 +147,6 @@ src/main/java/com/example/transactions
 ├── service/TransactionProcessor.java     # parse, transform, simpan
 ├── service/TransactionTransformer.java   # inti manipulasi data
 ├── persistence/                          # entity dan repository tabel transactions
-├── api/TransactionResource.java          # REST
+├── controller/TransactionResource.java   # REST
 └── model/                                # RawTransaction, EnrichedTransaction, dll.
 ```

@@ -217,6 +217,6 @@ src/main/java/com/example/checkout
 ├── model/          # Checkout, CartItem, CheckoutStatus
 ├── service/        # implementasi tiap Service Task
 ├── persistence/    # OrderEntity, OrderItem, ProductEntity, CheckoutRequestEntity
-└── api/            # StoreResource: /products, /orders
+└── controller/     # StoreResource: /products, /orders
 docs/               # ilustrasi diagram (png/svg)
 ```

@@ -1,4 +1,4 @@
-package com.example.transactions.api;
+package com.example.transactions.controller;
 
 import java.util.List;
 
