@@ -41,7 +41,7 @@ Setiap Service Task di BPMN memanggil satu method di CDI bean Java. Data mengali
 | Refund Pembayaran | `PaymentService.refundPayment` | Simulasi refund saat order gagal dibuat setelah pembayaran berhasil. Mengisi `paymentRefunded` dan status `ORDER_FAILED` | – |
 | Kirim Notifikasi | `NotificationService.sendOrderConfirmation` | Konfirmasi ke pembeli (di sini berupa log) | – |
 
-`ProductCatalog` menyimpan data produk dan stok di tabel `products` (H2). Data awalnya diisi saat aplikasi start:
+`ProductCatalog` mengelola data produk dan stok di tabel `products` (H2) lewat `ProductRepository`. Data awalnya diisi saat aplikasi start:
 
 | SKU | Produk | Harga | Stok |
 |---|---|---|---|
@@ -77,7 +77,7 @@ Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `Atomi
 
 | Risiko | Penjagaan |
 |---|---|
-| Stok terjual melebihi persediaan (oversell) | Reservasi memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Cek stok dan pengurangannya ada di statement yang sama, bukan baca-lalu-tulis dari Java. Kalau tidak ada baris yang ter-update, stok dianggap kurang. Dibuktikan oleh test konkurensi di `ProductCatalogTest` dan `CheckoutProcessTest` |
+| Stok terjual melebihi persediaan (oversell) | Reservasi (`ProductRepository.decreaseStock`) memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Cek stok dan pengurangannya ada di statement yang sama, bukan baca-lalu-tulis dari Java. Kalau tidak ada baris yang ter-update, stok dianggap kurang. Dibuktikan oleh test konkurensi di `ProductCatalogTest` dan `CheckoutProcessTest` |
 | Reservasi parsial untuk keranjang multi-SKU | Semua SKU di-update dalam satu transaksi. Satu SKU gagal, seluruhnya di-rollback |
 | Deadlock antar-checkout | SKU selalu di-update dalam urutan yang sama (di-sort lewat `TreeMap`) |
 | Request yang sama terkirim dua kali (klik ganda, retry) | Client mengirim `requestId`. Pasangan `customer_id` + `request_id` punya unique constraint, jadi dari beberapa request bersamaan hanya satu yang berhasil mengklaim; sisanya berakhir di `REJECTED_DUPLICATE_REQUEST` sebelum stok dan pembayaran tersentuh |
@@ -85,7 +85,7 @@ Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `Atomi
 
 ### Transaksi
 
-BPMN hanya mengatur alur. Akses database dilakukan method Java di balik tiap Service Task, masing-masing dalam transaksinya sendiri:
+BPMN hanya mengatur alur. Service di balik tiap Service Task mengatur batas transaksinya, sedangkan query dan operasi simpan ada di repository (`ProductRepository`, `OrderRepository`, `CheckoutRequestRepository`):
 
 | Class | Method | Transaksi |
 |---|---|---|

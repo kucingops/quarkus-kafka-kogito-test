@@ -63,4 +63,6 @@ cd soal-1-kafka-processor && mvn quarkus:dev
 cd soal-2-checkout-kogito && mvn quarkus:dev
 ```
 
+Test kedua soal juga dijalankan otomatis oleh GitHub Actions setiap ada push (workflow `.github/workflows/test.yml`); hasilnya bisa dilihat di tab **Actions** repo ini. `KafkaContainerIT` tidak ikut di CI, sama seperti `mvn test` biasa.
+
 Detail tiap soal ada di README masing-masing folder.
