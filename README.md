@@ -1,5 +1,7 @@
 # Quarkus Test
 
+[![Test](https://github.com/kucingops/quarkus-kafka-kogito-test/actions/workflows/test.yml/badge.svg)](https://github.com/kucingops/quarkus-kafka-kogito-test/actions/workflows/test.yml)
+
 Repo ini berisi jawaban dua soal. Masing-masing adalah project Quarkus terpisah yang bisa dibuild dan dijalankan sendiri.
 
 Keduanya adalah prototipe untuk tech test, bukan aplikasi produksi. H2 in-memory dipakai dengan sengaja untuk keperluan test; datanya hilang setiap kali aplikasi berhenti.

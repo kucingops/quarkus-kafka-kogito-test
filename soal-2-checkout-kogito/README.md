@@ -214,10 +214,37 @@ Ada dua jenis test, keduanya tanpa container.
 src/main/resources/com/example/checkout/checkout.bpmn   # diagram + definisi proses
 src/main/resources/import.sql                           # sequence nomor order
 src/main/java/com/example/checkout
-├── model/          # Checkout, CartItem, CheckoutStatus
-├── service/        # implementasi tiap Service Task
-├── entity/         # OrderEntity, OrderItem, ProductEntity, CheckoutRequestEntity
-├── repository/     # OrderRepository, ProductRepository, CheckoutRequestRepository
-└── controller/     # StoreResource: /products, /orders
-docs/               # ilustrasi diagram (png/svg)
+├── controller/
+│   └── StoreResource.java              # REST /products, /orders
+├── service/                            # implementasi tiap Service Task
+│   ├── CartService.java                # validasi keranjang
+│   ├── IdempotencyService.java         # cek request duplikat
+│   ├── InventoryService.java           # reservasi & rilis stok
+│   ├── PricingService.java             # hitung total
+│   ├── PaymentService.java             # bayar & refund (simulasi)
+│   ├── OrderService.java               # buat order
+│   ├── NotificationService.java        # notifikasi (log)
+│   └── ProductCatalog.java             # katalog & stok produk
+├── repository/                         # semua query ke database
+│   ├── ProductRepository.java          # stok: baca, kurangi atomik, kembalikan
+│   ├── OrderRepository.java            # order + sequence nomor order
+│   └── CheckoutRequestRepository.java  # klaim requestId
+├── entity/
+│   ├── ProductEntity.java              # tabel products
+│   ├── OrderEntity.java                # tabel orders
+│   ├── OrderItem.java                  # tabel order_items
+│   └── CheckoutRequestEntity.java      # tabel checkout_requests
+└── model/
+    ├── Checkout.java                   # variabel proses BPMN
+    ├── CartItem.java
+    └── CheckoutStatus.java
+
+src/test/java/com/example/checkout
+├── service/                            # unit test (Mockito) + ProductCatalogTest
+├── CheckoutProcessTest.java            # test proses BPMN
+├── CheckoutRestTest.java               # test endpoint REST
+└── ConcurrentRunner.java               # helper test konkurensi
+docs/                                   # ilustrasi diagram (png/svg)
 ```
+
+Controller dan service tidak mengakses database secara langsung; semua query lewat class di `repository`.

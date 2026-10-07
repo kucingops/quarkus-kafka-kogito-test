@@ -143,11 +143,29 @@ Test ini tidak ikut jalan di `mvn test` biasa karena nama class-nya berakhiran `
 
 ```
 src/main/java/com/example/transactions
-├── messaging/TransactionConsumer.java    # consumer Kafka + pengirim ke topic output/DLQ
-├── service/TransactionProcessor.java     # parse, transform, simpan
-├── service/TransactionTransformer.java   # inti manipulasi data
-├── entity/TransactionEntity.java         # entity tabel transactions
-├── repository/                           # TransactionRepository + CategorySummary (query)
-├── controller/TransactionResource.java   # REST
-└── model/                                # RawTransaction, EnrichedTransaction, dll.
+├── controller/
+│   └── TransactionResource.java          # REST /transactions
+├── service/
+│   ├── TransactionProcessor.java         # parse, transform, simpan
+│   ├── TransactionTransformer.java       # inti manipulasi data
+│   └── InvalidTransactionException.java  # data tidak valid -> DLQ
+├── repository/
+│   ├── TransactionRepository.java        # semua query ke tabel transactions
+│   └── CategorySummary.java              # hasil query ringkasan per kategori
+├── entity/
+│   └── TransactionEntity.java            # entity tabel transactions
+├── model/
+│   ├── RawTransaction.java               # pesan masuk dari Kafka
+│   ├── EnrichedTransaction.java          # hasil transformasi
+│   ├── RejectedTransaction.java          # pesan ke DLQ
+│   └── AmountCategory.java               # kategori nominal
+└── messaging/
+    └── TransactionConsumer.java          # consumer Kafka + pengirim ke topic output/DLQ
+
+src/test/java/com/example/transactions    # struktur package sama dengan main
+├── controller/  service/  messaging/     # unit test (Mockito)
+├── TransactionTransformerTest.java
+└── KafkaContainerIT.java, KafkaContainerResource.java   # container test
 ```
+
+Controller dan service tidak mengakses database secara langsung; semua query lewat `TransactionRepository`.
