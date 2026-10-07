@@ -65,6 +65,6 @@ cd soal-1-kafka-processor && mvn quarkus:dev
 cd soal-2-checkout-kogito && mvn quarkus:dev
 ```
 
-Setiap ada perubahan yang di-push, test kedua soal otomatis dijalankan di GitHub. Hasilnya terlihat dari badge di atas, atau di tab **Actions** repo ini. Test yang butuh Kafka sungguhan (`KafkaContainerIT`) tidak ikut dijalankan di sana.
+Setiap ada perubahan yang di-push, semua test kedua soal otomatis dijalankan di GitHub, termasuk test Soal 1 yang memakai Kafka sungguhan (`KafkaContainerIT`). Hasilnya terlihat dari badge di atas, atau di tab **Actions** repo ini.
 
 Detail tiap soal ada di README masing-masing folder.

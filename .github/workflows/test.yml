@@ -37,3 +37,29 @@ jobs:
         with:
           name: surefire-${{ matrix.module }}
           path: ${{ matrix.module }}/target/surefire-reports/
+
+  kafka-container-test:
+    name: soal-1-kafka-processor (Kafka sungguhan)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soal-1-kafka-processor
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: soal-1-kafka-processor/pom.xml
+
+      - name: mvn test -Dtest=KafkaContainerIT
+        run: mvn -B -ntp test -Dtest=KafkaContainerIT
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-kafka-container-test
+          path: soal-1-kafka-processor/target/surefire-reports/
