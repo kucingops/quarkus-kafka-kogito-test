@@ -15,9 +15,9 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.example.checkout.persistence.CheckoutRequestEntity;
 import com.example.checkout.model.Checkout;
-import com.example.checkout.persistence.OrderEntity;
+import com.example.checkout.repository.CheckoutRequestRepository;
+import com.example.checkout.repository.OrderRepository;
 import com.example.checkout.service.OrderService;
 import com.example.checkout.service.ProductCatalog;
 
@@ -33,12 +33,18 @@ class CheckoutRestTest {
     @Inject
     ProductCatalog catalog;
 
+    @Inject
+    OrderRepository orderRepository;
+
+    @Inject
+    CheckoutRequestRepository checkoutRequestRepository;
+
     @BeforeEach
     void resetData() {
         catalog.reset();
         QuarkusTransaction.requiringNew().run(() -> {
-            OrderEntity.deleteAll();
-            CheckoutRequestEntity.deleteAll();
+            orderRepository.deleteAll();
+            checkoutRequestRepository.deleteAll();
         });
     }
 

@@ -1,4 +1,4 @@
-package com.example.checkout.persistence;
+package com.example.checkout.entity;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -52,12 +52,4 @@ public class OrderEntity extends PanacheEntity {
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
-
-    public static OrderEntity findByOrderNumber(String orderNumber) {
-        return find("orderNumber", orderNumber).firstResult();
-    }
-
-    public static OrderEntity findByRequest(String customerId, String requestId) {
-        return find("customerId = ?1 and requestId = ?2", customerId, requestId).firstResult();
-    }
 }

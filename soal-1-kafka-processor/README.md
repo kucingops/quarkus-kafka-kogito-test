@@ -146,7 +146,7 @@ src/main/java/com/example/transactions
 ├── messaging/TransactionConsumer.java    # consumer Kafka + pengirim ke topic output/DLQ
 ├── service/TransactionProcessor.java     # parse, transform, simpan
 ├── service/TransactionTransformer.java   # inti manipulasi data
-├── persistence/TransactionEntity.java    # entity tabel transactions
+├── entity/TransactionEntity.java         # entity tabel transactions
 ├── repository/                           # TransactionRepository + CategorySummary (query)
 ├── controller/TransactionResource.java   # REST
 └── model/                                # RawTransaction, EnrichedTransaction, dll.

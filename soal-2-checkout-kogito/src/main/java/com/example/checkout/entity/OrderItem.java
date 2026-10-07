@@ -1,4 +1,4 @@
-package com.example.checkout.persistence;
+package com.example.checkout.entity;
 
 import com.example.checkout.model.CartItem;
 

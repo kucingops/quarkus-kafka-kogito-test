@@ -20,10 +20,10 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.example.transactions.entity.TransactionEntity;
 import com.example.transactions.model.AmountCategory;
 import com.example.transactions.model.EnrichedTransaction;
 import com.example.transactions.model.RawTransaction;
-import com.example.transactions.persistence.TransactionEntity;
 import com.example.transactions.repository.TransactionRepository;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult;
 import com.example.transactions.service.TransactionProcessor.ProcessingResult.Status;

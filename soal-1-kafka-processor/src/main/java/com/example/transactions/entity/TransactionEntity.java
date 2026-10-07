@@ -1,4 +1,4 @@
-package com.example.transactions.persistence;
+package com.example.transactions.entity;
 
 import java.math.BigDecimal;
 import java.time.Instant;

@@ -1,4 +1,4 @@
-package com.example.checkout.persistence;
+package com.example.checkout.entity;
 
 import java.time.Instant;
 
@@ -21,8 +21,4 @@ public class CheckoutRequestEntity extends PanacheEntity {
 
     @Column(name = "created_at", nullable = false)
     public Instant createdAt;
-
-    public static boolean exists(String customerId, String requestId) {
-        return count("customerId = ?1 and requestId = ?2", customerId, requestId) > 0;
-    }
 }

@@ -2,8 +2,8 @@ package com.example.transactions.repository;
 
 import java.util.List;
 
+import com.example.transactions.entity.TransactionEntity;
 import com.example.transactions.model.AmountCategory;
-import com.example.transactions.persistence.TransactionEntity;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Sort;

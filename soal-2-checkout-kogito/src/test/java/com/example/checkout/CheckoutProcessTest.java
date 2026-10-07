@@ -21,11 +21,12 @@ import org.kie.kogito.Model;
 import org.kie.kogito.process.Process;
 import org.kie.kogito.process.ProcessInstance;
 
+import com.example.checkout.entity.OrderEntity;
 import com.example.checkout.model.CartItem;
 import com.example.checkout.model.Checkout;
 import com.example.checkout.model.CheckoutStatus;
-import com.example.checkout.persistence.CheckoutRequestEntity;
-import com.example.checkout.persistence.OrderEntity;
+import com.example.checkout.repository.CheckoutRequestRepository;
+import com.example.checkout.repository.OrderRepository;
 import com.example.checkout.service.OrderService;
 import com.example.checkout.service.ProductCatalog;
 
@@ -45,12 +46,18 @@ class CheckoutProcessTest {
     @Inject
     ProductCatalog catalog;
 
+    @Inject
+    OrderRepository orderRepository;
+
+    @Inject
+    CheckoutRequestRepository checkoutRequestRepository;
+
     @BeforeEach
     void resetData() {
         catalog.reset();
         QuarkusTransaction.requiringNew().run(() -> {
-            OrderEntity.deleteAll();
-            CheckoutRequestEntity.deleteAll();
+            orderRepository.deleteAll();
+            checkoutRequestRepository.deleteAll();
         });
     }
 
@@ -77,7 +84,7 @@ class CheckoutProcessTest {
     }
 
     private long orderCount() {
-        return QuarkusTransaction.requiringNew().call(() -> OrderEntity.count());
+        return QuarkusTransaction.requiringNew().call(() -> orderRepository.count());
     }
 
     private static long countByStatus(List<Checkout> results, CheckoutStatus status) {
@@ -199,7 +206,7 @@ class CheckoutProcessTest {
                 new CartItem("SKU-002", 1)));
 
         OrderEntity order = QuarkusTransaction.requiringNew()
-                .call(() -> OrderEntity.findByOrderNumber(result.getOrderNumber()));
+                .call(() -> orderRepository.findByOrderNumber(result.getOrderNumber()));
         assertEquals(2, order.items.size());
         assertEquals("SKU-001", order.items.get(0).sku);
         assertEquals("Kaos Polos", order.items.get(0).productName);

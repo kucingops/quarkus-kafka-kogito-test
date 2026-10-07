@@ -5,8 +5,8 @@ import java.util.List;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
+import com.example.transactions.entity.TransactionEntity;
 import com.example.transactions.model.AmountCategory;
-import com.example.transactions.persistence.TransactionEntity;
 import com.example.transactions.repository.CategorySummary;
 import com.example.transactions.repository.TransactionRepository;
 

@@ -216,7 +216,8 @@ src/main/resources/import.sql                           # sequence nomor order
 src/main/java/com/example/checkout
 ├── model/          # Checkout, CartItem, CheckoutStatus
 ├── service/        # implementasi tiap Service Task
-├── persistence/    # OrderEntity, OrderItem, ProductEntity, CheckoutRequestEntity
+├── entity/         # OrderEntity, OrderItem, ProductEntity, CheckoutRequestEntity
+├── repository/     # OrderRepository, ProductRepository, CheckoutRequestRepository
 └── controller/     # StoreResource: /products, /orders
 docs/               # ilustrasi diagram (png/svg)
 ```

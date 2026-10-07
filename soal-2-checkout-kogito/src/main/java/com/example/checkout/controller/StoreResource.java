@@ -3,11 +3,11 @@ package com.example.checkout.controller;
 import java.util.Collection;
 import java.util.List;
 
-import com.example.checkout.persistence.OrderEntity;
-import com.example.checkout.service.ProductCatalog;
+import com.example.checkout.entity.OrderEntity;
+import com.example.checkout.repository.OrderRepository;
 import com.example.checkout.service.ProductCatalog.Product;
+import com.example.checkout.service.ProductCatalog;
 
-import io.quarkus.panache.common.Sort;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
@@ -23,6 +23,9 @@ public class StoreResource {
     @Inject
     ProductCatalog catalog;
 
+    @Inject
+    OrderRepository orderRepository;
+
     @GET
     @Path("products")
     public Collection<Product> products() {
@@ -32,13 +35,13 @@ public class StoreResource {
     @GET
     @Path("orders")
     public List<OrderEntity> orders() {
-        return OrderEntity.listAll(Sort.descending("createdAt"));
+        return orderRepository.findLatest();
     }
 
     @GET
     @Path("orders/{orderNumber}")
     public OrderEntity order(@PathParam("orderNumber") String orderNumber) {
-        OrderEntity order = OrderEntity.findByOrderNumber(orderNumber);
+        OrderEntity order = orderRepository.findByOrderNumber(orderNumber);
         if (order == null) {
             throw new NotFoundException("Order " + orderNumber + " not found");
         }

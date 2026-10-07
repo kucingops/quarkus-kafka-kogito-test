@@ -2,9 +2,9 @@ package com.example.transactions.service;
 
 import org.jboss.logging.Logger;
 
+import com.example.transactions.entity.TransactionEntity;
 import com.example.transactions.model.EnrichedTransaction;
 import com.example.transactions.model.RawTransaction;
-import com.example.transactions.persistence.TransactionEntity;
 import com.example.transactions.repository.TransactionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

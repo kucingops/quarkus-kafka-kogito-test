@@ -6,15 +6,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import com.example.checkout.persistence.ProductEntity;
+import com.example.checkout.entity.ProductEntity;
+import com.example.checkout.repository.ProductRepository;
 
 import io.quarkus.narayana.jta.QuarkusTransaction;
-import io.quarkus.panache.common.Sort;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.transaction.Transactional.TxType;
 
@@ -32,18 +31,18 @@ public class ProductCatalog {
             new Product("SKU-005", "Topi Bucket", 50_000, 0));
 
     @Inject
-    EntityManager em;
+    ProductRepository productRepository;
 
     @Transactional
     void seedOnStartup(@Observes StartupEvent event) {
-        if (ProductEntity.count() == 0) {
+        if (productRepository.count() == 0) {
             insertSeed();
         }
     }
 
     @Transactional
     public void reset() {
-        ProductEntity.deleteAll();
+        productRepository.deleteAll();
         insertSeed();
     }
 
@@ -54,7 +53,7 @@ public class ProductCatalog {
             entity.name = p.name();
             entity.price = p.price();
             entity.stock = p.stock();
-            entity.persist();
+            productRepository.persist(entity);
         }
     }
 
@@ -63,31 +62,25 @@ public class ProductCatalog {
         if (sku == null) {
             return Optional.empty();
         }
-        return ProductEntity.<ProductEntity>findByIdOptional(sku).map(ProductCatalog::toProduct);
+        return productRepository.findByIdOptional(sku).map(ProductCatalog::toProduct);
     }
 
     @Transactional
     public Collection<Product> all() {
-        return ProductEntity.<ProductEntity>listAll(Sort.ascending("sku")).stream()
+        return productRepository.findAllSortedBySku().stream()
                 .map(ProductCatalog::toProduct)
                 .toList();
     }
 
     @Transactional
     public int stockOf(String sku) {
-        return em.createQuery("select p.stock from ProductEntity p where p.sku = :sku", Integer.class)
-                .setParameter("sku", sku)
-                .getResultStream()
-                .findFirst()
-                .orElse(0);
+        return productRepository.stockOf(sku);
     }
 
     @Transactional(TxType.REQUIRES_NEW)
     public String tryReserve(Map<String, Integer> quantities) {
         for (Map.Entry<String, Integer> e : new TreeMap<>(quantities).entrySet()) {
-            int updated = ProductEntity.update("stock = stock - ?1 where sku = ?2 and stock >= ?1",
-                    e.getValue(), e.getKey());
-            if (updated == 0) {
+            if (!productRepository.decreaseStock(e.getKey(), e.getValue())) {
                 String error = "insufficient stock for " + e.getKey() + " (requested " + e.getValue()
                         + ", available " + stockOf(e.getKey()) + ")";
                 QuarkusTransaction.setRollbackOnly();
@@ -100,7 +93,7 @@ public class ProductCatalog {
     @Transactional(TxType.REQUIRES_NEW)
     public void release(Map<String, Integer> quantities) {
         new TreeMap<>(quantities).forEach((sku, qty) ->
-                ProductEntity.update("stock = stock + ?1 where sku = ?2", qty, sku));
+                productRepository.increaseStock(sku, qty));
     }
 
     private static Product toProduct(ProductEntity entity) {

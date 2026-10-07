@@ -25,12 +25,12 @@ Kedua soal memakai pembagian package yang sama di bawah `com.example.<soal>`:
 |---|---|
 | `controller` | REST resource (JAX-RS) |
 | `service` | logika bisnis |
-| `repository` | akses data dan query |
-| `persistence` | entity JPA |
+| `repository` | satu-satunya lapisan yang mengakses database (Panache repository) |
+| `entity` | entity JPA |
 | `model` | DTO / objek domain |
 | `messaging` | consumer dan producer Kafka (Soal 1) |
 
-Soal 2 belum punya package `repository`: entity-nya memakai pola active record Panache, jadi query ada di entity itu sendiri atau di service. Rincian file per soal ada di bagian "Struktur kode" README masing-masing.
+Semua query dan operasi simpan/hapus lewat class di `repository`; entity hanya berisi mapping tabel, dan service maupun controller tidak memakai `EntityManager` atau method static Panache secara langsung. Rincian file per soal ada di bagian "Struktur kode" README masing-masing.
 
 ## Prasyarat
 
