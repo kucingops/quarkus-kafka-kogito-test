@@ -17,6 +17,21 @@ Keduanya adalah prototipe untuk tech test, bukan aplikasi produksi. H2 in-memory
 - Kogito / jBPM 10.1.0
 - H2 in-memory + Hibernate ORM Panache
 
+## Struktur package
+
+Kedua soal memakai pembagian package yang sama di bawah `com.example.<soal>`:
+
+| Package | Isi |
+|---|---|
+| `controller` | REST resource (JAX-RS) |
+| `service` | logika bisnis |
+| `repository` | akses data dan query |
+| `persistence` | entity JPA |
+| `model` | DTO / objek domain |
+| `messaging` | consumer dan producer Kafka (Soal 1) |
+
+Soal 2 belum punya package `repository`: entity-nya memakai pola active record Panache, jadi query ada di entity itu sendiri atau di service. Rincian file per soal ada di bagian "Struktur kode" README masing-masing.
+
 ## Prasyarat
 
 - JDK 17
