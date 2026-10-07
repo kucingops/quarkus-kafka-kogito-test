@@ -73,13 +73,13 @@ Contoh hubungan BPMN ke Java, dipotong dari `checkout.bpmn`:
 
 Project ini dijalankan dan diuji sebagai **satu instance** aplikasi dengan H2 in-memory. Race condition yang dijaga adalah banyak request yang masuk bersamaan ke instance itu.
 
-Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `AtomicInteger`), supaya tidak bergantung pada satu JVM. Menjalankan beberapa instance sekaligus berada di luar cakupan dan belum diuji.
+Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `AtomicInteger`).
 
 | Risiko | Penjagaan |
 |---|---|
-| Stok terjual melebihi persediaan (oversell) | Reservasi memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Database mengunci barisnya dan mengevaluasi ulang syarat `stock >= :qty` terhadap nilai terbaru, jadi tidak ada jeda antara cek dan pengurangan. Kalau tidak ada baris yang ter-update, stok kurang |
+| Stok terjual melebihi persediaan (oversell) | Reservasi memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Cek stok dan pengurangannya ada di statement yang sama, bukan baca-lalu-tulis dari Java. Kalau tidak ada baris yang ter-update, stok dianggap kurang. Dibuktikan oleh test konkurensi di `ProductCatalogTest` dan `CheckoutProcessTest` |
 | Reservasi parsial untuk keranjang multi-SKU | Semua SKU di-update dalam satu transaksi. Satu SKU gagal, seluruhnya di-rollback |
-| Deadlock antar-checkout | SKU selalu di-update dalam urutan yang sama (di-sort) |
+| Deadlock antar-checkout | SKU selalu di-update dalam urutan yang sama (di-sort lewat `TreeMap`) |
 | Request yang sama terkirim dua kali (klik ganda, retry) | Client mengirim `requestId`. Pasangan `customer_id` + `request_id` punya unique constraint, jadi dari beberapa request bersamaan hanya satu yang berhasil mengklaim; sisanya berakhir di `REJECTED_DUPLICATE_REQUEST` sebelum stok dan pembayaran tersentuh |
 | Nomor order kembar | Nomor diambil dari sequence database, ditambah unique constraint di `order_number` |
 
@@ -98,22 +98,22 @@ Endpoint `POST /checkout` yang di-generate Kogito ber-`@Transactional`, jadi lew
 
 ### Batasan
 
-- Hanya satu instance. H2 in-memory hidup per JVM, jadi dua instance akan punya stok dan order masing-masing. Untuk multi-instance, datasource perlu diarahkan ke database bersama (misalnya PostgreSQL) dan sequence `order_number_seq` di `import.sql` dibuat lewat migrasi.
+- Hanya dijalankan dan diuji sebagai satu instance.
 - `requestId` opsional. Request tanpa `requestId` tidak dicek duplikatnya.
-- `requestId` terpakai begitu lolos validasi keranjang, apa pun hasil akhirnya. Untuk mencoba lagi setelah stok habis, pembayaran gagal, atau order gagal dibuat, kirim `requestId` baru.
+- `requestId` terpakai begitu lolos validasi keranjang, apa pun hasil akhirnya. Untuk mencoba lagi setelah stok habis atau pembayaran gagal, kirim `requestId` baru. `requestId` dari request yang ditolak di validasi keranjang masih bisa dipakai lagi.
 - Request duplikat tetap berstatus `REJECTED_DUPLICATE_REQUEST`; hasil request aslinya tidak diputar ulang. Yang dikembalikan hanya `orderNumber` kalau order aslinya sudah tersimpan.
-- Hanya kegagalan "Buat Order" yang punya jalur kompensasi. Exception di task lain (misalnya "Kirim Notifikasi") membuat proses berakhir error.
-- Kalau aplikasi mati di antara reservasi stok dan pembayaran, kompensasi tidak sempat jalan dan stok tetap terpotong. Data H2 in-memory ikut hilang saat restart, jadi di sini tidak berdampak.
+- Hanya kegagalan "Buat Order" yang punya jalur kompensasi di BPMN.
+- Data H2 in-memory hilang setiap kali aplikasi berhenti: stok kembali ke data awal dan nomor order mulai lagi dari `0001`.
 
 ## Cara menjalankan
 
-Prasyarat: JDK 17 dan Maven 3.9+. Tidak perlu Podman.
+Prasyarat: JDK 17 dan Maven 3.9. Tidak perlu Podman: Kogito Dev Services dimatikan lewat `quarkus.kogito.devservices.enabled=false`, jadi dev mode tidak menyalakan container.
 
 ```bash
 mvn quarkus:dev        # http://localhost:8081
 ```
 
-Endpoint `/checkout` di-generate Kogito dari ID proses, sedangkan `/products` dan `/orders` ditulis manual di `StoreResource`.
+Endpoint `/checkout` di-generate Kogito dari ID proses, sedangkan `/products` dan `/orders` ditulis manual di `StoreResource`. Kogito juga men-generate endpoint lain di bawah `/checkout` (instance dan task); daftar lengkapnya ada di Swagger UI. Yang dipakai di sini hanya `POST /checkout`.
 
 | Method | Path | Fungsi |
 |---|---|---|
@@ -121,7 +121,7 @@ Endpoint `/checkout` di-generate Kogito dari ID proses, sedangkan `/products` da
 | GET | `/products` | Katalog dan stok |
 | GET | `/orders`, `/orders/{orderNumber}` | Order yang tersimpan di H2 |
 
-Semua Service Task berjalan sinkron, jadi respons `POST /checkout` sudah berisi hasil akhir.
+Semua Service Task berjalan sinkron, jadi respons `POST /checkout` sudah berisi hasil akhir. Status HTTP-nya `201` untuk semua status akhir checkout; berhasil atau tidaknya dibaca dari `checkout.status`.
 
 ```bash
 curl -s -X POST localhost:8081/checkout -H 'Content-Type: application/json' -d '{
@@ -157,10 +157,11 @@ Mencoba jalur gagal:
 - Request duplikat: kirim ulang body yang sama dengan `requestId` yang sama → `REJECTED_DUPLICATE_REQUEST`, dengan `orderNumber` order aslinya
 - Stok habis: `SKU-005` → `REJECTED_OUT_OF_STOCK`
 - Pembayaran gagal: `SKU-004` dengan `"paymentMethod": "EWALLET"` → `PAYMENT_FAILED`, stok laptop kembali ke 2
+- Order gagal dibuat (`ORDER_FAILED`): tidak bisa dipicu lewat request biasa. Jalur ini diuji di `CheckoutProcessTest` dan `CheckoutRestTest` dengan `OrderService` yang di-mock supaya melempar exception.
 
 Swagger UI: http://localhost:8081/q/swagger-ui
 
-Diagram bisa dibuka di VS Code dengan ekstensi *Apache KIE BPMN Editor*, atau di [KIE Sandbox](https://sandbox.kie.org).
+`checkout.bpmn` bisa dibuka dengan KIE BPMN Editor; sudah dicoba dengan editor standalone `@kie-tools/kie-editors-standalone` 10.1.0.
 
 ## Testing
 
@@ -170,7 +171,7 @@ mvn test
 
 Ada dua jenis test, keduanya tanpa container.
 
-**Unit test service (Mockito).** Tiap service diuji sendiri, dengan `ProductCatalog` di-mock.
+**Unit test service (Mockito).** Tiap service diuji sendiri, dengan `ProductCatalog` di-mock. `IdempotencyService`, `OrderService`, dan `NotificationService` tidak punya unit test sendiri; ketiganya dijalankan lewat test `@QuarkusTest` di bawah.
 
 | Test | Yang di-mock | Yang diuji |
 |---|---|---|
@@ -196,12 +197,16 @@ Ada dua jenis test, keduanya tanpa container.
 | | `requestId` berbeda | Keduanya diproses, 2 order |
 | | `requestId` sama dari dua customer berbeda | Keduanya diproses, 2 order |
 | | 20 request bersamaan dengan `requestId` sama | Tepat 1 `COMPLETED`, 19 `REJECTED_DUPLICATE_REQUEST`, 1 order |
-| `ProductCatalogTest` | 32 thread reservasi SKU yang sama | Yang lolos tepat sebanyak stok, stok akhir 0 |
+| `ProductCatalogTest` | Reservasi dua SKU, salah satunya habis | Reservasi gagal, stok SKU lain tidak terpotong |
+| | Reserve lalu release | Stok kembali ke nilai awal |
+| | 32 thread reservasi SKU yang sama | Yang lolos tepat sebanyak stok, stok akhir 0 |
 | | 32 thread reservasi dua SKU sekaligus | All-or-nothing: tidak ada stok yang terpotong sebagian |
 | | 32 thread reserve lalu release berulang | Stok kembali ke nilai awal |
 | `CheckoutRestTest` | `POST /checkout` | Respons JSON, order beserta itemnya bisa diambil lewat `/orders` |
+| | `POST /checkout` dengan stok habis | Status `REJECTED_OUT_OF_STOCK`, tidak ada order |
 | | `POST /checkout` saat "Buat Order" gagal | Respons tetap berhasil dengan status `ORDER_FAILED`, stok kembali, tidak ada order |
-| | `POST /checkout` dua kali dengan `requestId` sama | Yang kedua `REJECTED_DUPLICATE_REQUEST`, hanya 1 order |
+| | `POST /checkout` dua kali dengan `requestId` sama | Yang kedua `REJECTED_DUPLICATE_REQUEST` dengan `orderNumber` order pertama, hanya 1 order |
+| | `GET /products` | Katalog berisi 5 produk |
 
 ## Struktur kode
 

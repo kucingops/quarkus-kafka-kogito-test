@@ -2,6 +2,8 @@
 
 Repo ini berisi jawaban dua soal. Masing-masing adalah project Quarkus terpisah yang bisa dibuild dan dijalankan sendiri.
 
+Keduanya adalah prototipe untuk tech test, bukan aplikasi produksi. H2 in-memory dipakai dengan sengaja untuk keperluan test; datanya hilang setiap kali aplikasi berhenti.
+
 | Folder | Soal | Ringkasan |
 |---|---|---|
 | [`soal-1-kafka-processor`](soal-1-kafka-processor/README.md) | Kafka → manipulasi → Kafka / DB | Membaca transaksi e-commerce dari Kafka, membersihkan dan memperkaya datanya, lalu menulis hasilnya ke topic lain dan ke database H2. |
@@ -18,8 +20,8 @@ Repo ini berisi jawaban dua soal. Masing-masing adalah project Quarkus terpisah 
 ## Prasyarat
 
 - JDK 17
-- Maven 3.9+
-- Podman, hanya untuk Soal 1: `mvn quarkus:dev` dan container test-nya sama-sama menyalakan broker Kafka di container. `mvn test` di kedua soal tidak butuh Podman.
+- Maven 3.9
+- Podman, hanya untuk Soal 1. Repo ini tidak punya file compose, tapi Kafka tetap berjalan sebagai container: `mvn quarkus:dev` dan container test-nya sama-sama menyalakan broker Kafka sendiri lewat Podman. `mvn test` di kedua soal dan `mvn quarkus:dev` di Soal 2 tidak butuh Podman.
 
 ## Setup Podman
 

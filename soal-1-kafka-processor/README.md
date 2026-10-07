@@ -2,7 +2,7 @@
 
 Service yang menerima data transaksi e-commerce dari Kafka, memanipulasi datanya, lalu menulis hasilnya kembali ke Kafka dan menyimpannya ke database H2.
 
-Stack: Java 17, Quarkus 3.15, Kafka (SmallRye Reactive Messaging), H2 + Hibernate ORM Panache.
+Stack: Java 17, Quarkus 3.15.3, Kafka (SmallRye Reactive Messaging), H2 + Hibernate ORM Panache.
 Dataset: transaksi e-commerce buatan sendiri, lihat `data/sample-transactions.jsonl`.
 
 ## Alur
@@ -46,7 +46,7 @@ Contoh input di `transactions-raw`:
  "paymentMethod":"bank-transfer","timestamp":"2026-10-01T10:45:00Z"}
 ```
 
-Hasil di `transactions-enriched` dan di H2:
+Hasil di `transactions-enriched` (record key: `TRX-1003`):
 
 ```json
 {"transactionId":"TRX-1003","customerId":"CUST-03","maskedEmail":"an****@outlook.com",
@@ -55,17 +55,25 @@ Hasil di `transactions-enriched` dan di H2:
  "highRisk":true,"transactionTime":"2026-10-01T10:45:00Z","processedAt":"..."}
 ```
 
+Data yang sama tersimpan di tabel `transactions` dan bisa dibaca lewat `GET /transactions/TRX-1003`. Di respons REST itu `originalAmount` tampil dengan dua desimal (`1250.00`) karena kolomnya `NUMERIC(19,2)`.
+
+Pesan yang ditolak masuk ke `transactions-dlq` dalam bentuk:
+
+```json
+{"rawPayload":"<payload asli>","reason":"amount must be greater than 0","rejectedAt":"..."}
+```
+
 Catatan singkat:
 
 - Soal memberi pilihan output ke Kafka atau database. Di sini dikerjakan keduanya.
-- Data yang tidak valid dikirim ke `transactions-dlq`, jadi consumer tidak berhenti karena satu pesan rusak. Exception tak terduga saat memproses satu pesan (misalnya error database) juga berakhir di DLQ dengan alasan `processing error: ...`.
+- Data yang tidak valid dikirim ke `transactions-dlq`, jadi consumer tidak berhenti karena satu pesan rusak. Exception tak terduga saat memproses satu pesan juga berakhir di DLQ dengan alasan `processing error: ...`.
 - `transactionId` menjadi primary key dan dicek sebelum insert, jadi pesan duplikat hanya diproses sekali.
 - Record di `transactions-enriched` memakai `transactionId` sebagai key.
-- Insert ke database dan pengiriman ke Kafka bukan satu transaksi. Kalau pengiriman ke `transactions-enriched` gagal, consumer berhenti dan pesan itu diproses ulang dari awal setelah aplikasi dijalankan lagi (H2 in-memory ikut kosong saat restart).
+- Record di `transactions-dlq` tidak memakai key.
 
 ## Cara menjalankan
 
-Prasyarat: JDK 17, Maven 3.9+, dan Podman. Di dev mode Quarkus Dev Services otomatis menyalakan container broker, cukup arahkan ke socket Podman dulu:
+Prasyarat: JDK 17, Maven 3.9, dan Podman. Tidak ada file compose: di dev mode Quarkus Dev Services otomatis menyalakan container broker Kafka dan mematikannya saat aplikasi berhenti. Karena broker-nya tetap berupa container, Podman harus aktif. Arahkan ke socket Podman dulu:
 
 ```bash
 systemctl --user enable --now podman.socket
@@ -77,29 +85,30 @@ export TESTCONTAINERS_RYUK_DISABLED=true
 mvn quarkus:dev
 ```
 
+Saat pertama kali dijalankan, image broker diunduh dulu (sekitar 230 MB), jadi start pertama lebih lama.
+
 Di terminal lain, kirim dataset contoh lalu lihat hasilnya:
 
 ```bash
-./data/publish-sample.sh            # kirim data contoh: valid, invalid, duplikat, JSON rusak
+./data/publish-sample.sh            # kirim 9 baris contoh: 5 valid, 2 invalid, 1 duplikat, 1 JSON rusak
 curl localhost:8080/transactions    # data yang tersimpan di H2
 curl localhost:8080/transactions/summary
 curl "localhost:8080/transactions?highRisk=true"
 ```
 
-Isi topic Kafka bisa dilihat di Dev UI: http://localhost:8080/q/dev-ui
-
-Broker yang dipakai tergantung cara menjalankannya:
+Broker di kedua cara jalan adalah Apache Kafka, dinyalakan otomatis sebagai container:
 
 | Cara jalan | Broker | Dinyalakan oleh |
 |---|---|---|
-| `mvn quarkus:dev` | Redpanda (kompatibel protokol Kafka) | Quarkus Dev Services |
-| `mvn test -Dtest=KafkaContainerIT` | `apache/kafka:3.8.0` | `KafkaContainerResource` (Testcontainers) |
-| Profil prod (jar) | `apache/kafka:3.8.0` di `localhost:9092` | `docker-compose.yml` di root repo |
+| `mvn quarkus:dev` | Apache Kafka 3.7.0 (`quay.io/strimzi-test-container/test-container:latest-kafka-3.7.0`) | Quarkus Dev Services, provider `strimzi` (`quarkus.kafka.devservices.provider=strimzi`) |
+| `mvn test -Dtest=KafkaContainerIT` | Apache Kafka 3.8.0 (`apache/kafka:3.8.0`) | `KafkaContainerResource` (Testcontainers) |
+
+Endpoint REST:
 
 | Method | Path | Fungsi |
 |---|---|---|
 | POST | `/transactions/publish` | Mengirim body apa adanya ke `transactions-raw` (untuk demo) |
-| GET | `/transactions?category=&highRisk=` | Daftar transaksi tersimpan |
+| GET | `/transactions?category=&highRisk=` | Daftar transaksi tersimpan, terbaru dulu. Kedua filter opsional |
 | GET | `/transactions/{id}` | Detail satu transaksi |
 | GET | `/transactions/summary` | Jumlah dan total nilai per kategori |
 
@@ -120,7 +129,7 @@ mvn test
 | `TransactionConsumerTest` | Processor, emitter Kafka | Hasil valid ke topic output dengan key `transactionId`, yang ditolak dan error tak terduga ke DLQ, duplikat tidak dikirim |
 | `TransactionResourceTest` | Repository, emitter Kafka | Endpoint publish, list, detail, dan 404 |
 
-**Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Apache Kafka sungguhan di dalam container. `KafkaContainerResource` menyalakan image `apache/kafka:3.8.0` (sama dengan `docker-compose.yml`) lewat Testcontainers, lalu mengisi `kafka.bootstrap.servers` dengan alamat container itu. Dev Services dimatikan di profil test (`%test.quarkus.kafka.devservices.enabled=false`) supaya tidak ada broker kedua. Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database. Satu test juga memastikan consumer tetap memproses pesan berikutnya setelah menerima pesan yang nilainya tidak muat di tabel.
+**Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Apache Kafka sungguhan di dalam container. `KafkaContainerResource` menyalakan image `apache/kafka:3.8.0` lewat Testcontainers, lalu mengisi `kafka.bootstrap.servers` dengan alamat container itu. Dev Services dimatikan di profil test (`%test.quarkus.kafka.devservices.enabled=false`) supaya tidak ada broker kedua. Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database. Satu test juga memastikan consumer tetap memproses pesan berikutnya setelah menerima pesan yang nilainya tidak muat di tabel.
 
 Pastikan variabel Podman di bagian "Cara menjalankan" sudah di-set, lalu:
 
