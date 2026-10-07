@@ -1,4 +1,4 @@
-# Marketplace Tech Test
+# Quarkus Test
 
 Repo ini berisi jawaban dua soal. Masing-masing adalah project Quarkus terpisah yang bisa dibuild dan dijalankan sendiri.
 
