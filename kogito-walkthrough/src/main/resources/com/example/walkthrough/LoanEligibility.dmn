@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmn:definitions xmlns:dmn="http://www.omg.org/spec/DMN/20180521/MODEL/" xmlns="https://example.com/walkthrough/dmn" xmlns:feel="http://www.omg.org/spec/DMN/20180521/FEEL/" xmlns:kie="http://www.drools.org/kie/dmn/1.2" xmlns:dmndi="http://www.omg.org/spec/DMN/20180521/DMNDI/" xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/" xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/" id="_LoanEligibility" name="LoanEligibility" typeLanguage="http://www.omg.org/spec/DMN/20180521/FEEL/" namespace="https://example.com/walkthrough/dmn">
+  <dmn:extensionElements/>
+
+  <dmn:itemDefinition id="_tApplicant" name="tApplicant" isCollection="false">
+    <dmn:itemComponent id="_tApplicant_name" name="name" isCollection="false"><dmn:typeRef>string</dmn:typeRef></dmn:itemComponent>
+    <dmn:itemComponent id="_tApplicant_age" name="age" isCollection="false"><dmn:typeRef>number</dmn:typeRef></dmn:itemComponent>
+    <dmn:itemComponent id="_tApplicant_monthlyIncome" name="monthlyIncome" isCollection="false"><dmn:typeRef>number</dmn:typeRef></dmn:itemComponent>
+    <dmn:itemComponent id="_tApplicant_creditScore" name="creditScore" isCollection="false"><dmn:typeRef>number</dmn:typeRef></dmn:itemComponent>
+  </dmn:itemDefinition>
+  <dmn:itemDefinition id="_tRiskCategory" name="tRiskCategory" isCollection="false">
+    <dmn:typeRef>string</dmn:typeRef>
+    <dmn:allowedValues kie:constraintType="enumeration" id="_tRiskCategory_values"><dmn:text>"LOW", "MEDIUM", "HIGH"</dmn:text></dmn:allowedValues>
+  </dmn:itemDefinition>
+  <dmn:itemDefinition id="_tEligibility" name="tEligibility" isCollection="false">
+    <dmn:typeRef>string</dmn:typeRef>
+    <dmn:allowedValues kie:constraintType="enumeration" id="_tEligibility_values"><dmn:text>"APPROVED", "REVIEW", "REJECTED"</dmn:text></dmn:allowedValues>
+  </dmn:itemDefinition>
+
+  <dmn:inputData id="_Applicant" name="Applicant">
+    <dmn:variable id="_Applicant_var" name="Applicant" typeRef="tApplicant"/>
+  </dmn:inputData>
+  <dmn:inputData id="_RequestedAmount" name="Requested Amount">
+    <dmn:variable id="_RequestedAmount_var" name="Requested Amount" typeRef="number"/>
+  </dmn:inputData>
+
+  <!-- 1. Kategori risiko dari credit score (decision table, hit policy UNIQUE) -->
+  <dmn:decision id="_RiskCategory" name="Risk Category">
+    <dmn:variable id="_RiskCategory_var" name="Risk Category" typeRef="tRiskCategory"/>
+    <dmn:informationRequirement id="_RiskCategory_ir1"><dmn:requiredInput href="#_Applicant"/></dmn:informationRequirement>
+    <dmn:decisionTable id="_RiskCategory_dt" hitPolicy="UNIQUE" preferredOrientation="Rule-as-Row">
+      <dmn:input id="_RiskCategory_in1" label="Applicant.creditScore">
+        <dmn:inputExpression id="_RiskCategory_in1_expr" typeRef="number"><dmn:text>Applicant.creditScore</dmn:text></dmn:inputExpression>
+      </dmn:input>
+      <dmn:output id="_RiskCategory_out1"/>
+      <dmn:rule id="_RiskCategory_r1">
+        <dmn:inputEntry id="_RiskCategory_r1_i1"><dmn:text>&gt;= 700</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_RiskCategory_r1_o1"><dmn:text>"LOW"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+      <dmn:rule id="_RiskCategory_r2">
+        <dmn:inputEntry id="_RiskCategory_r2_i1"><dmn:text>[600..700)</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_RiskCategory_r2_o1"><dmn:text>"MEDIUM"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+      <dmn:rule id="_RiskCategory_r3">
+        <dmn:inputEntry id="_RiskCategory_r3_i1"><dmn:text>&lt; 600</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_RiskCategory_r3_o1"><dmn:text>"HIGH"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+    </dmn:decisionTable>
+  </dmn:decision>
+
+  <!-- 2. Plafon pinjaman (literal expression FEEL) -->
+  <dmn:decision id="_MaxLoan" name="Max Loan">
+    <dmn:variable id="_MaxLoan_var" name="Max Loan" typeRef="number"/>
+    <dmn:informationRequirement id="_MaxLoan_ir1"><dmn:requiredInput href="#_Applicant"/></dmn:informationRequirement>
+    <dmn:informationRequirement id="_MaxLoan_ir2"><dmn:requiredDecision href="#_RiskCategory"/></dmn:informationRequirement>
+    <dmn:literalExpression id="_MaxLoan_expr">
+      <dmn:text>Applicant.monthlyIncome * (if Risk Category = "LOW" then 12 else if Risk Category = "MEDIUM" then 6 else 0)</dmn:text>
+    </dmn:literalExpression>
+  </dmn:decision>
+
+  <!-- 3. Keputusan akhir (decision table, hit policy FIRST: baris pertama yang cocok menang) -->
+  <dmn:decision id="_Eligibility" name="Eligibility">
+    <dmn:variable id="_Eligibility_var" name="Eligibility" typeRef="tEligibility"/>
+    <dmn:informationRequirement id="_Eligibility_ir1"><dmn:requiredInput href="#_Applicant"/></dmn:informationRequirement>
+    <dmn:informationRequirement id="_Eligibility_ir2"><dmn:requiredInput href="#_RequestedAmount"/></dmn:informationRequirement>
+    <dmn:informationRequirement id="_Eligibility_ir3"><dmn:requiredDecision href="#_RiskCategory"/></dmn:informationRequirement>
+    <dmn:informationRequirement id="_Eligibility_ir4"><dmn:requiredDecision href="#_MaxLoan"/></dmn:informationRequirement>
+    <dmn:decisionTable id="_Eligibility_dt" hitPolicy="FIRST" preferredOrientation="Rule-as-Row">
+      <dmn:input id="_Eligibility_in1" label="Applicant.age">
+        <dmn:inputExpression id="_Eligibility_in1_expr" typeRef="number"><dmn:text>Applicant.age</dmn:text></dmn:inputExpression>
+      </dmn:input>
+      <dmn:input id="_Eligibility_in2" label="Risk Category">
+        <dmn:inputExpression id="_Eligibility_in2_expr" typeRef="tRiskCategory"><dmn:text>Risk Category</dmn:text></dmn:inputExpression>
+      </dmn:input>
+      <dmn:input id="_Eligibility_in3" label="Dalam plafon?">
+        <dmn:inputExpression id="_Eligibility_in3_expr" typeRef="boolean"><dmn:text>Requested Amount &lt;= Max Loan</dmn:text></dmn:inputExpression>
+      </dmn:input>
+      <dmn:output id="_Eligibility_out1"/>
+      <dmn:rule id="_Eligibility_r1">
+        <dmn:inputEntry id="_Eligibility_r1_i1"><dmn:text>&lt; 21</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r1_i2"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r1_i3"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_Eligibility_r1_o1"><dmn:text>"REJECTED"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+      <dmn:rule id="_Eligibility_r2">
+        <dmn:inputEntry id="_Eligibility_r2_i1"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r2_i2"><dmn:text>"HIGH"</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r2_i3"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_Eligibility_r2_o1"><dmn:text>"REJECTED"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+      <dmn:rule id="_Eligibility_r3">
+        <dmn:inputEntry id="_Eligibility_r3_i1"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r3_i2"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r3_i3"><dmn:text>true</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_Eligibility_r3_o1"><dmn:text>"APPROVED"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+      <dmn:rule id="_Eligibility_r4">
+        <dmn:inputEntry id="_Eligibility_r4_i1"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r4_i2"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:inputEntry id="_Eligibility_r4_i3"><dmn:text>-</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="_Eligibility_r4_o1"><dmn:text>"REVIEW"</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+    </dmn:decisionTable>
+  </dmn:decision>
+</dmn:definitions>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:drools="http://www.jboss.org/drools" id="_EventsDefinitions" exporter="jBPM Process Modeler" exporterVersion="2.0" targetNamespace="http://www.omg.org/bpmn20">
+  <bpmn2:itemDefinition id="_applicantItem" structureRef="com.example.walkthrough.model.Applicant"/>
+  <bpmn2:itemDefinition id="_stringItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="__Catch_Documents_eventOutputXItem" structureRef="String"/>
+  <bpmn2:signal id="_documentsUploaded" name="documentsUploaded"/>
+  <bpmn2:process id="loan_documents" drools:packageName="com.example.walkthrough" drools:version="1.0" drools:adHoc="false" name="Langkah 7 - Signal dan Timer" isExecutable="true" processType="Public">
+    <bpmn2:property id="applicant" itemSubjectRef="_applicantItem" name="applicant"/>
+    <bpmn2:property id="timeout" itemSubjectRef="_stringItem" name="timeout"/>
+    <bpmn2:property id="documents" itemSubjectRef="_stringItem" name="documents"/>
+    <bpmn2:property id="status" itemSubjectRef="_stringItem" name="status"/>
+    <bpmn2:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Task_Request"/>
+    <bpmn2:sequenceFlow id="Flow_2" sourceRef="Task_Request" targetRef="Gateway_Wait"/>
+    <bpmn2:sequenceFlow id="Flow_3" sourceRef="Gateway_Wait" targetRef="Catch_Documents"/>
+    <bpmn2:sequenceFlow id="Flow_4" sourceRef="Gateway_Wait" targetRef="Catch_Timeout"/>
+    <bpmn2:sequenceFlow id="Flow_5" sourceRef="Catch_Documents" targetRef="Task_Received"/>
+    <bpmn2:sequenceFlow id="Flow_6" sourceRef="Catch_Timeout" targetRef="Task_Expired"/>
+    <bpmn2:sequenceFlow id="Flow_7" sourceRef="Task_Received" targetRef="End_Received"/>
+    <bpmn2:sequenceFlow id="Flow_8" sourceRef="Task_Expired" targetRef="End_Expired"/>
+    <bpmn2:startEvent id="Start" name="Pengajuan masuk">
+      <bpmn2:outgoing>Flow_1</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:scriptTask id="Task_Request" name="Minta Dokumen" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_1</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_2</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[if (timeout == null || timeout.isBlank()) {
+    kcontext.setVariable("timeout", "PT24H");
+}
+kcontext.setVariable("status", "WAITING_DOCUMENTS");
+System.out.println("[documents] menunggu dokumen, batas waktu " + kcontext.getVariable("timeout"));]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:eventBasedGateway id="Gateway_Wait" name="Mana yang datang duluan?" gatewayDirection="Diverging">
+      <bpmn2:incoming>Flow_2</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_3</bpmn2:outgoing>
+      <bpmn2:outgoing>Flow_4</bpmn2:outgoing>
+    </bpmn2:eventBasedGateway>
+    <bpmn2:intermediateCatchEvent id="Catch_Documents" name="Dokumen diunggah">
+      <bpmn2:incoming>Flow_3</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_5</bpmn2:outgoing>
+      <bpmn2:dataOutput id="Catch_Documents_eventOutputX" drools:dtype="String" itemSubjectRef="__Catch_Documents_eventOutputXItem" name="event"/>
+      <bpmn2:dataOutputAssociation><bpmn2:sourceRef>Catch_Documents_eventOutputX</bpmn2:sourceRef><bpmn2:targetRef>documents</bpmn2:targetRef></bpmn2:dataOutputAssociation>
+      <bpmn2:outputSet><bpmn2:dataOutputRefs>Catch_Documents_eventOutputX</bpmn2:dataOutputRefs></bpmn2:outputSet>
+      <bpmn2:signalEventDefinition signalRef="_documentsUploaded"/>
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:intermediateCatchEvent id="Catch_Timeout" name="Batas waktu habis">
+      <bpmn2:incoming>Flow_4</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_6</bpmn2:outgoing>
+      <bpmn2:timerEventDefinition>
+        <bpmn2:timeDuration xsi:type="bpmn2:tFormalExpression"><![CDATA[#{timeout}]]></bpmn2:timeDuration>
+      </bpmn2:timerEventDefinition>
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:scriptTask id="Task_Received" name="Dokumen Lengkap" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_5</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_7</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[kcontext.setVariable("status", "DOCUMENTS_RECEIVED");]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:scriptTask id="Task_Expired" name="Pengajuan Kedaluwarsa" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>Flow_6</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_8</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[kcontext.setVariable("status", "EXPIRED");]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:endEvent id="End_Received" name="Lanjut proses">
+      <bpmn2:incoming>Flow_7</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:endEvent id="End_Expired" name="Kedaluwarsa">
+      <bpmn2:incoming>Flow_8</bpmn2:incoming>
+    </bpmn2:endEvent>
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="_Diagram">
+    <bpmndi:BPMNPlane id="_Plane" bpmnElement="loan_documents">
+      <bpmndi:BPMNShape id="shape_Start" bpmnElement="Start"><dc:Bounds height="36" width="36" x="87" y="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Task_Request" bpmnElement="Task_Request"><dc:Bounds height="64" width="130" x="230" y="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Gateway_Wait" bpmnElement="Gateway_Wait"><dc:Bounds height="50" width="50" x="460" y="57"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Catch_Documents" bpmnElement="Catch_Documents"><dc:Bounds height="36" width="36" x="657" y="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Catch_Timeout" bpmnElement="Catch_Timeout"><dc:Bounds height="36" width="36" x="657" y="194"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Task_Received" bpmnElement="Task_Received"><dc:Bounds height="64" width="130" x="800" y="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_Task_Expired" bpmnElement="Task_Expired"><dc:Bounds height="64" width="130" x="800" y="180"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_End_Received" bpmnElement="End_Received"><dc:Bounds height="36" width="36" x="1037" y="64"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="shape_End_Expired" bpmnElement="End_Expired"><dc:Bounds height="36" width="36" x="1037" y="194"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="edge_Flow_1" bpmnElement="Flow_1"><di:waypoint x="123" y="82"/><di:waypoint x="230" y="82"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_2" bpmnElement="Flow_2"><di:waypoint x="360" y="82"/><di:waypoint x="460" y="82"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_3" bpmnElement="Flow_3"><di:waypoint x="510" y="82"/><di:waypoint x="657" y="82"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_4" bpmnElement="Flow_4"><di:waypoint x="485" y="107"/><di:waypoint x="485" y="212"/><di:waypoint x="657" y="212"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_5" bpmnElement="Flow_5"><di:waypoint x="693" y="82"/><di:waypoint x="800" y="82"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_6" bpmnElement="Flow_6"><di:waypoint x="693" y="212"/><di:waypoint x="800" y="212"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_7" bpmnElement="Flow_7"><di:waypoint x="930" y="82"/><di:waypoint x="1037" y="82"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="edge_Flow_8" bpmnElement="Flow_8"><di:waypoint x="930" y="212"/><di:waypoint x="1037" y="212"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

@@ -1,0 +1,50 @@
+package com.example.walkthrough;
+unit LoanRules;
+
+import com.example.walkthrough.model.Alert;
+import com.example.walkthrough.model.Applicant;
+
+// Langkah 6: aturan bisnis dalam DRL (Drools Rule Language).
+// Setiap rule berbentuk "when <pola fakta> then <aksi>". Engine mencocokkan
+// semua rule ke semua fakta sekaligus, jadi urutan penulisan rule tidak penting.
+
+rule "Skor kredit rendah"
+when
+    $a: /applicants[ creditScore < 600 ]
+then
+    alerts.add(new Alert($a.getName(), "HIGH", "Skor kredit di bawah 600"));
+end
+
+rule "Pemohon di bawah 21 tahun"
+when
+    $a: /applicants[ age < 21 ]
+then
+    alerts.add(new Alert($a.getName(), "HIGH", "Usia di bawah 21 tahun"));
+end
+
+rule "Cicilan terlalu berat"
+when
+    // cicilan 12 bulan > 30% penghasilan  <=>  pinjaman > 3,6 x penghasilan
+    $a: /applicants[ requestedAmount * 10 > monthlyIncome * 36 ]
+then
+    alerts.add(new Alert($a.getName(), "MEDIUM", "Cicilan melebihi 30% penghasilan"));
+end
+
+// Rule ini bereaksi terhadap Alert yang dibuat rule lain (forward chaining):
+// begitu satu pemohon punya dua peringatan atau lebih, engine menambah satu
+// peringatan CRITICAL tanpa perlu dipanggil ulang.
+rule "Banyak peringatan"
+when
+    $a: /applicants
+    accumulate( /alerts[ applicant == $a.name, severity != "CRITICAL" ]; $count: count(); $count >= 2 )
+then
+    alerts.add(new Alert($a.getName(), "CRITICAL", "Ada " + $count + " peringatan, wajib review manual"));
+end
+
+query FindAlerts
+    $alert: /alerts
+end
+
+query FindCriticalAlerts
+    $alert: /alerts[ severity == "CRITICAL" ]
+end
