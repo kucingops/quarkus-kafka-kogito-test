@@ -68,6 +68,7 @@ Catatan singkat:
 - Soal memberi pilihan output ke Kafka atau database. Di sini dikerjakan keduanya.
 - Data yang tidak valid dikirim ke `transactions-dlq`, jadi consumer tidak berhenti karena satu pesan rusak. Exception tak terduga saat memproses satu pesan juga berakhir di DLQ dengan alasan `processing error: ...`.
 - `transactionId` menjadi primary key dan dicek sebelum insert, jadi pesan duplikat hanya diproses sekali.
+- Insert ke database dan publish ke `transactions-enriched` terjadi dalam satu transaksi: baris di-flush dulu, lalu pesan di-publish, baru transaksi di-commit. Kalau publish gagal, insert di-rollback dan exception diteruskan, sehingga offset tidak di-commit dan pesan diproses ulang (at-least-once). Dengan begitu tidak ada transaksi yang tersimpan di database tetapi tidak pernah sampai ke topic output. Kalau commit gagal setelah publish berhasil, pesan bisa terkirim dua kali; karena key-nya `transactionId`, consumer hilir bisa mendeduplikasi.
 - Record di `transactions-enriched` memakai `transactionId` sebagai key.
 - Record di `transactions-dlq` tidak memakai key.
 
@@ -125,8 +126,8 @@ mvn test
 | Test | Yang di-mock | Yang diuji |
 |---|---|---|
 | `TransactionTransformerTest` | – (logika murni) | Normalisasi, konversi kurs, batas kategori, flag risiko, masking, validasi |
-| `TransactionProcessorTest` | Transformer, repository | Data valid disimpan, duplikat tidak disimpan ulang, data invalid dan JSON rusak ditolak |
-| `TransactionConsumerTest` | Processor, emitter Kafka | Hasil valid ke topic output dengan key `transactionId`, yang ditolak dan error tak terduga ke DLQ, duplikat tidak dikirim |
+| `TransactionProcessorTest` | Transformer, repository | Data valid disimpan, duplikat tidak disimpan ulang, data invalid dan JSON rusak ditolak, publish dipanggil setelah flush dan kegagalannya membatalkan transaksi |
+| `TransactionConsumerTest` | Processor, emitter Kafka | Hasil valid ke topic output dengan key `transactionId`, yang ditolak dan error tak terduga ke DLQ, duplikat tidak dikirim, publish yang gagal diteruskan (bukan ke DLQ) |
 | `TransactionResourceTest` | Repository, emitter Kafka | Endpoint publish, list, detail, dan 404 |
 
 **Container test (butuh Podman).** `KafkaContainerIT` menjalankan aplikasi dengan broker Apache Kafka sungguhan di dalam container. `KafkaContainerResource` menyalakan image `apache/kafka:3.8.0` lewat Testcontainers, lalu mengisi `kafka.bootstrap.servers` dengan alamat container itu. Dev Services dimatikan di profil test (`%test.quarkus.kafka.devservices.enabled=false`) supaya tidak ada broker kedua. Test mengirim pesan ke `transactions-raw`, lalu memastikan hasilnya benar-benar ter-produce ke `transactions-enriched` / `transactions-dlq` dan benar-benar ter-insert ke database. Satu test juga memastikan consumer tetap memproses pesan berikutnya setelah menerima pesan yang nilainya tidak muat di tabel.

@@ -1,5 +1,7 @@
 package com.example.transactions.service;
 
+import java.util.function.Consumer;
+
 import org.jboss.logging.Logger;
 
 import com.example.transactions.entity.TransactionEntity;
@@ -27,8 +29,21 @@ public class TransactionProcessor {
     @Inject
     TransactionRepository repository;
 
-    @Transactional
     public ProcessingResult process(String payload) {
+        return process(payload, tx -> {
+        });
+    }
+
+    /**
+     * Memproses satu payload dalam satu transaksi database.
+     *
+     * <p>{@code beforeCommit} dipanggil setelah baris berhasil di-flush ke database tetapi sebelum
+     * transaksi di-commit. Dipakai consumer untuk publish ke Kafka: kalau publish gagal, exception-nya
+     * membuat transaksi di-rollback, sehingga pesan yang sama bisa diproses ulang dan tidak dianggap
+     * duplikat. Tanpa urutan ini, data sudah tersimpan tetapi tidak pernah sampai ke topic enriched.
+     */
+    @Transactional
+    public ProcessingResult process(String payload, Consumer<EnrichedTransaction> beforeCommit) {
         RawTransaction raw;
         try {
             raw = objectMapper.readValue(payload, RawTransaction.class);
@@ -49,6 +64,9 @@ public class TransactionProcessor {
         }
 
         repository.persist(TransactionEntity.from(enriched));
+        // Flush dulu supaya error database (misalnya nilai tidak muat di kolom) muncul sebelum publish.
+        repository.flush();
+        beforeCommit.accept(enriched);
         return ProcessingResult.processed(enriched);
     }
 

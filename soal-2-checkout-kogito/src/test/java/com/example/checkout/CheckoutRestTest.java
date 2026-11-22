@@ -145,6 +145,30 @@ class CheckoutRestTest {
     }
 
     @Test
+    void postCheckout_retryWithSameRequestIdAfterPaymentFailure_succeeds() {
+        String declined = """
+                { "checkout": { "requestId": "REQ-REST-RETRY", "customerId": "CUST-80", "paymentMethod": "EWALLET",
+                                "items": [ { "sku": "SKU-004", "quantity": 1 } ] } }
+                """;
+        String retry = declined.replace("EWALLET", "BANK_TRANSFER");
+
+        given().contentType(ContentType.JSON).accept(ContentType.JSON).body(declined)
+                .when().post("/checkout")
+                .then()
+                .statusCode(anyOf(is(200), is(201)))
+                .body("checkout.status", equalTo("PAYMENT_FAILED"));
+
+        given().contentType(ContentType.JSON).accept(ContentType.JSON).body(retry)
+                .when().post("/checkout")
+                .then()
+                .statusCode(anyOf(is(200), is(201)))
+                .body("checkout.status", equalTo("COMPLETED"))
+                .body("checkout.orderNumber", startsWith("ORD-"));
+
+        given().when().get("/orders").then().statusCode(200).body("$", hasSize(1));
+    }
+
+    @Test
     void productsEndpointListsCatalog() {
         given().when().get("/products")
                 .then().statusCode(200)

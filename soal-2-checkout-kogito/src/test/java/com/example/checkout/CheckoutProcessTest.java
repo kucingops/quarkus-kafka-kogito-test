@@ -290,4 +290,68 @@ class CheckoutProcessTest {
         assertEquals(9, catalog.stockOf("SKU-001"));
         assertEquals(1, orderCount());
     }
+
+    private long claimCount() {
+        return QuarkusTransaction.requiringNew().call(() -> checkoutRequestRepository.count());
+    }
+
+    @Test
+    void paymentFailed_releasesRequestId_soRetryWithSameRequestIdSucceeds() {
+        Checkout declined = request("EWALLET", new CartItem("SKU-004", 1));
+        declined.setRequestId("REQ-RETRY-PAY");
+        Checkout retry = request("BANK_TRANSFER", new CartItem("SKU-004", 1));
+        retry.setRequestId("REQ-RETRY-PAY");
+
+        Checkout first = run(declined);
+        assertEquals(CheckoutStatus.PAYMENT_FAILED, first.getStatus());
+        assertFalse(first.isRequestClaimed());
+        assertEquals(0, claimCount());
+
+        Checkout second = run(retry);
+        assertEquals(CheckoutStatus.COMPLETED, second.getStatus());
+        assertFalse(second.isDuplicateRequest());
+        assertTrue(second.isRequestClaimed());
+        assertEquals(1, claimCount());
+        assertEquals(1, orderCount());
+    }
+
+    @Test
+    void outOfStock_releasesRequestId_soRetryWithSameRequestIdIsNotADuplicate() {
+        Checkout soldOut = request("BANK_TRANSFER", new CartItem("SKU-005", 1));
+        soldOut.setRequestId("REQ-RETRY-STOCK");
+        Checkout retry = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        retry.setRequestId("REQ-RETRY-STOCK");
+
+        assertEquals(CheckoutStatus.REJECTED_OUT_OF_STOCK, run(soldOut).getStatus());
+        assertEquals(CheckoutStatus.COMPLETED, run(retry).getStatus());
+        assertEquals(1, orderCount());
+    }
+
+    @Test
+    void orderCreationFailure_releasesRequestId() {
+        OrderService failing = mock(OrderService.class);
+        when(failing.createOrder(any(Checkout.class))).thenThrow(new IllegalStateException("database unavailable"));
+        QuarkusMock.installMockForType(failing, OrderService.class);
+        Checkout c = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        c.setRequestId("REQ-RETRY-ORDER");
+
+        assertEquals(CheckoutStatus.ORDER_FAILED, run(c).getStatus());
+        assertEquals(0, claimCount());
+    }
+
+    @Test
+    void duplicateRejection_doesNotReleaseTheOriginalClaim() {
+        Checkout first = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        first.setRequestId("REQ-KEEP");
+        Checkout second = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        second.setRequestId("REQ-KEEP");
+        Checkout third = request("BANK_TRANSFER", new CartItem("SKU-001", 1));
+        third.setRequestId("REQ-KEEP");
+
+        assertEquals(CheckoutStatus.COMPLETED, run(first).getStatus());
+        assertEquals(CheckoutStatus.REJECTED_DUPLICATE_REQUEST, run(second).getStatus());
+        assertEquals(CheckoutStatus.REJECTED_DUPLICATE_REQUEST, run(third).getStatus());
+        assertEquals(1, claimCount());
+        assertEquals(1, orderCount());
+    }
 }

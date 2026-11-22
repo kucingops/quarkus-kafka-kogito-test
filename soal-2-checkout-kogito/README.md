@@ -32,7 +32,7 @@ Setiap Service Task di BPMN memanggil satu method di CDI bean Java. Data mengali
 | Service Task | Class & method | Tanggung jawab | Flag untuk gateway |
 |---|---|---|---|
 | Validasi Keranjang | `CartService.validateCart` | `customerId` wajib ada, metode bayar wajib ada dan didukung, keranjang tidak kosong, SKU dikenal, qty 1–10 per SKU (baris dengan SKU yang sama dijumlahkan) | `cartValid` |
-| Cek Request Duplikat | `IdempotencyService.checkDuplicate` | Mengklaim pasangan `customerId` + `requestId` di tabel `checkout_requests`. Request yang pasangannya sudah pernah diklaim ditolak, dan `orderNumber` dari order aslinya (kalau ada) ikut dikembalikan | `duplicateRequest` |
+| Cek Request Duplikat | `IdempotencyService.checkDuplicate` | Mengklaim pasangan `customerId` + `requestId` di tabel `checkout_requests`. Request yang pasangannya sudah pernah diklaim ditolak, dan `orderNumber` dari order aslinya (kalau ada) ikut dikembalikan. Klaim dilepas lagi kalau proses berakhir tanpa order (lihat `CheckoutClaimReleaser`) | `duplicateRequest` |
 | Reservasi Stok | `InventoryService.reserveStock` | Mengunci stok semua item. Kalau satu item kurang, tidak ada stok yang dikurangi | `stockReserved` |
 | Hitung Total | `PricingService.calculateTotal` | Harga dari katalog server. Ongkir Rp20.000, gratis bila subtotal ≥ Rp500.000. Voucher `HEMAT10` = 10%, maks Rp50.000 | – |
 | Proses Pembayaran | `PaymentService.processPayment` | Simulasi payment gateway dengan limit per metode: BANK_TRANSFER 50 jt, CREDIT_CARD 25 jt, COD 5 jt, EWALLET 2 jt | `paymentSuccess` |
@@ -80,7 +80,7 @@ Penjagaannya diletakkan di database, bukan di memori JVM (`synchronized`, `Atomi
 | Stok terjual melebihi persediaan (oversell) | Reservasi stok (di `ProductRepository`) memakai satu statement `UPDATE products SET stock = stock - :qty WHERE sku = :sku AND stock >= :qty`. Cek stok dan pengurangannya ada di statement yang sama, bukan baca-lalu-tulis dari Java. Kalau tidak ada baris yang ter-update, stok dianggap kurang. Dibuktikan oleh test konkurensi di `ProductCatalogTest` dan `CheckoutProcessTest` |
 | Reservasi parsial untuk keranjang multi-SKU | Semua SKU di-update dalam satu transaksi. Satu SKU gagal, seluruhnya di-rollback |
 | Deadlock antar-checkout | SKU selalu di-update dalam urutan yang sama (di-sort lewat `TreeMap`) |
-| Request yang sama terkirim dua kali (klik ganda, retry) | Client mengirim `requestId`. Pasangan `customer_id` + `request_id` punya unique constraint, jadi dari beberapa request bersamaan hanya satu yang berhasil mengklaim; sisanya berakhir di `REJECTED_DUPLICATE_REQUEST` sebelum stok dan pembayaran tersentuh |
+| Request yang sama terkirim dua kali (klik ganda, retry) | Client mengirim `requestId`. Pasangan `customer_id` + `request_id` punya unique constraint, jadi dari beberapa request bersamaan hanya satu yang berhasil mengklaim; sisanya berakhir di `REJECTED_DUPLICATE_REQUEST` sebelum stok dan pembayaran tersentuh. Kalau checkout yang mengklaim ternyata gagal (stok habis, pembayaran ditolak, order gagal dibuat), process event listener `CheckoutClaimReleaser` menghapus klaimnya saat proses selesai, sehingga retry dengan `requestId` yang sama tetap bisa diproses |
 | Nomor order kembar | Nomor diambil dari sequence database, ditambah unique constraint di `order_number` |
 
 ### Transaksi
@@ -90,6 +90,7 @@ BPMN hanya mengatur alur. Tiap langkahnya dikerjakan oleh service, dan service m
 | Class | Method | Transaksi |
 |---|---|---|
 | `IdempotencyService` | `checkDuplicate` | Transaksi baru lewat `QuarkusTransaction.requiringNew()`, supaya error unique constraint bisa ditangkap setelah rollback |
+| `IdempotencyService` | `releaseClaim` | Transaksi baru lewat `QuarkusTransaction.requiringNew()` |
 | `ProductCatalog` | `tryReserve`, `release` | `@Transactional(REQUIRES_NEW)` |
 | `ProductCatalog` | `find`, `all`, `stockOf` | `@Transactional` |
 | `OrderService` | `createOrder` | `@Transactional(REQUIRES_NEW)` |
@@ -100,7 +101,7 @@ Endpoint `POST /checkout` yang di-generate Kogito ber-`@Transactional`, jadi lew
 
 - Hanya dijalankan dan diuji sebagai satu instance.
 - `requestId` opsional. Request tanpa `requestId` tidak dicek duplikatnya.
-- `requestId` terpakai begitu lolos validasi keranjang, apa pun hasil akhirnya. Untuk mencoba lagi setelah stok habis atau pembayaran gagal, kirim `requestId` baru. `requestId` dari request yang ditolak di validasi keranjang masih bisa dipakai lagi.
+- `requestId` hanya terpakai oleh checkout yang berhasil (`COMPLETED`). Selama checkout pertama masih berjalan, request lain dengan `requestId` yang sama ditolak sebagai duplikat. Kalau checkout itu gagal (stok habis, pembayaran ditolak, order gagal dibuat), klaimnya dilepas saat proses selesai, sehingga client bisa mencoba lagi dengan `requestId` yang sama. `requestId` dari request yang ditolak di validasi keranjang tidak pernah diklaim.
 - Request duplikat tetap berstatus `REJECTED_DUPLICATE_REQUEST`; hasil request aslinya tidak diputar ulang. Yang dikembalikan hanya `orderNumber` kalau order aslinya sudah tersimpan.
 - Hanya kegagalan "Buat Order" yang punya jalur kompensasi di BPMN.
 - Data H2 in-memory hilang setiap kali aplikasi berhenti: stok kembali ke data awal dan nomor order mulai lagi dari `0001`.
@@ -197,6 +198,10 @@ Ada dua jenis test, keduanya tanpa container.
 | | `requestId` berbeda | Keduanya diproses, 2 order |
 | | `requestId` sama dari dua customer berbeda | Keduanya diproses, 2 order |
 | | 20 request bersamaan dengan `requestId` sama | Tepat 1 `COMPLETED`, 19 `REJECTED_DUPLICATE_REQUEST`, 1 order |
+| | Pembayaran gagal, lalu retry dengan `requestId` sama | Klaim dilepas, retry `COMPLETED`, 1 order |
+| | Stok habis, lalu retry dengan `requestId` sama | Retry tidak dianggap duplikat, `COMPLETED` |
+| | "Buat Order" gagal | Klaim `requestId` dilepas |
+| | Duplikat ditolak | Klaim milik request asli tidak ikut dilepas |
 | `ProductCatalogTest` | Reservasi dua SKU, salah satunya habis | Reservasi gagal, stok SKU lain tidak terpotong |
 | | Reserve lalu release | Stok kembali ke nilai awal |
 | | 32 thread reservasi SKU yang sama | Yang lolos tepat sebanyak stok, stok akhir 0 |
@@ -206,6 +211,7 @@ Ada dua jenis test, keduanya tanpa container.
 | | `POST /checkout` dengan stok habis | Status `REJECTED_OUT_OF_STOCK`, tidak ada order |
 | | `POST /checkout` saat "Buat Order" gagal | Respons tetap berhasil dengan status `ORDER_FAILED`, stok kembali, tidak ada order |
 | | `POST /checkout` dua kali dengan `requestId` sama | Yang kedua `REJECTED_DUPLICATE_REQUEST` dengan `orderNumber` order pertama, hanya 1 order |
+| | `POST /checkout` gagal bayar, lalu retry dengan `requestId` sama | Retry `COMPLETED`, 1 order |
 | | `GET /products` | Katalog berisi 5 produk |
 
 ## Struktur kode
@@ -216,6 +222,8 @@ src/main/resources/import.sql                           # sequence nomor order
 src/main/java/com/example/checkout
 ├── controller/
 │   └── StoreResource.java              # endpoint /products, /orders
+├── listener/
+│   └── CheckoutClaimReleaser.java      # lepas klaim requestId saat checkout gagal
 ├── service/                            # isi tiap langkah di diagram BPMN
 │   ├── CartService.java                # validasi keranjang
 │   ├── IdempotencyService.java         # cek request duplikat
