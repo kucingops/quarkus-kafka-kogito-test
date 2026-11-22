@@ -15,6 +15,7 @@ jobs:
         module:
           - soal-1-kafka-processor
           - soal-2-checkout-kogito
+          - kogito-walkthrough
     defaults:
       run:
         working-directory: ${{ matrix.module }}

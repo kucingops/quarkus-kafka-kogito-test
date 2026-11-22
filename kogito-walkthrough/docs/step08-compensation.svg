@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1113" height="294" viewBox="0 0 1113 294" font-family="Helvetica, Arial, sans-serif" font-size="12">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
+<rect width="100%" height="100%" fill="#fff"/>
+<polyline points="123,82 230,82" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<polyline points="360,82 420,82" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<polyline points="550,82 610,82" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<polyline points="740,82 847,82" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<polyline points="518,132 518,212 657,212" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<polyline points="693,212 800,212" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<polyline points="930,212 1037,212" fill="none" stroke="#444" stroke-width="1.3" marker-end="url(#arrow)"/>
+<line x1="328" y1="132" x2="328" y2="180" stroke="#444" stroke-dasharray="3,3" marker-end="url(#arrow)"/>
+<circle cx="105" cy="82" r="18" fill="#fff" stroke="#2e7d32" stroke-width="1.5"/>
+<text x="105" y="114" text-anchor="middle" dominant-baseline="middle" font-size="11">Pinjaman disetujui</text>
+<rect x="230" y="50" width="130" height="64" rx="9" fill="#ede7f6" stroke="#455a64" stroke-width="1.3"/>
+<text x="238" y="62" font-size="12" fill="#455a64">⚙</text>
+<text x="295" y="82" text-anchor="middle" dominant-baseline="middle" font-size="12">Reservasi Dana</text>
+<rect x="420" y="50" width="130" height="64" rx="9" fill="#ede7f6" stroke="#455a64" stroke-width="1.3"/>
+<text x="428" y="62" font-size="12" fill="#455a64">⚙</text>
+<text x="485" y="75" text-anchor="middle" dominant-baseline="middle" font-size="12">Transfer ke</text><text x="485" y="89" text-anchor="middle" dominant-baseline="middle" font-size="12">Rekening</text>
+<circle cx="675" cy="212" r="18" fill="#fff" stroke="#ef6c00" stroke-width="1.5"/>
+<circle cx="675" cy="212" r="14.5" fill="none" stroke="#ef6c00" stroke-width="1.2"/>
+<text x="675" y="213" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#ef6c00">⏪</text>
+<text x="675" y="237" text-anchor="middle" dominant-baseline="middle" font-size="11">Batalkan langkah</text><text x="675" y="251" text-anchor="middle" dominant-baseline="middle" font-size="11">sebelumnya</text>
+<rect x="610" y="50" width="130" height="64" rx="9" fill="#f1f8e9" stroke="#455a64" stroke-width="1.3"/>
+<text x="618" y="62" font-size="12" fill="#455a64">✎</text>
+<text x="675" y="82" text-anchor="middle" dominant-baseline="middle" font-size="12">Tandai Cair</text>
+<rect x="800" y="180" width="130" height="64" rx="9" fill="#f1f8e9" stroke="#455a64" stroke-width="1.3"/>
+<text x="808" y="192" font-size="12" fill="#455a64">✎</text>
+<text x="865" y="212" text-anchor="middle" dominant-baseline="middle" font-size="12">Tandai Gagal</text>
+<circle cx="865" cy="82" r="18" fill="#fff" stroke="#c62828" stroke-width="3.5"/>
+<text x="865" y="114" text-anchor="middle" dominant-baseline="middle" font-size="11">Dana cair</text>
+<circle cx="1055" cy="212" r="18" fill="#fff" stroke="#c62828" stroke-width="3.5"/>
+<text x="1055" y="244" text-anchor="middle" dominant-baseline="middle" font-size="11">Pencairan gagal</text>
+<circle cx="328" cy="114" r="18" fill="#fff" stroke="#ef6c00" stroke-width="1.5"/>
+<circle cx="328" cy="114" r="14.5" fill="none" stroke="#ef6c00" stroke-width="1.2"/>
+<text x="328" y="115" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#ef6c00">⏪</text>
+<text x="350" y="134" text-anchor="start" dominant-baseline="middle" font-size="11">Kompensasi</text>
+<circle cx="518" cy="114" r="18" fill="#fff" stroke="#ef6c00" stroke-width="1.5"/>
+<circle cx="518" cy="114" r="14.5" fill="none" stroke="#ef6c00" stroke-width="1.2"/>
+<text x="518" y="115" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#ef6c00">⚡</text>
+<text x="540" y="134" text-anchor="start" dominant-baseline="middle" font-size="11">Transfer gagal</text>
+<rect x="230" y="180" width="130" height="64" rx="9" fill="#ede7f6" stroke="#455a64" stroke-width="1.3" stroke-dasharray="4,3"/>
+<text x="238" y="192" font-size="12" fill="#455a64">⚙</text>
+<text x="295" y="236" text-anchor="middle" font-size="11" fill="#455a64">⏪</text>
+<text x="295" y="205" text-anchor="middle" dominant-baseline="middle" font-size="12">Lepas Reservasi</text><text x="295" y="219" text-anchor="middle" dominant-baseline="middle" font-size="12">Dana</text>
+<text x="12" y="280" font-size="11" fill="#888">Langkah 8 - Error dan Kompensasi (process id: loan_disbursement)</text>
+</svg>
