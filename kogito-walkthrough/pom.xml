@@ -14,8 +14,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-    <quarkus.platform.version>3.15.3</quarkus.platform.version>
-    <kogito.bom.version>10.1.0</kogito.bom.version>
+    <quarkus.platform.version>3.27.2</quarkus.platform.version>
+    <kogito.bom.version>10.2.0</kogito.bom.version>
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
     <surefire-plugin.version>3.5.0</surefire-plugin.version>
   </properties>
@@ -48,14 +48,9 @@
       <groupId>org.drools</groupId>
       <artifactId>drools-quarkus-decisions</artifactId>
     </dependency>
-
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy-jackson</artifactId>
+      <artifactId>quarkus-rest-jackson</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

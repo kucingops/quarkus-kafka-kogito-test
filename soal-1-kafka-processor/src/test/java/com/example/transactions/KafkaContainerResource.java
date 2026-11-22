@@ -9,7 +9,7 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 
 public class KafkaContainerResource implements QuarkusTestResourceLifecycleManager {
 
-    private static final DockerImageName IMAGE = DockerImageName.parse("docker.io/apache/kafka:3.8.0")
+    private static final DockerImageName IMAGE = DockerImageName.parse("docker.io/apache/kafka:4.2.2")
             .asCompatibleSubstituteFor("apache/kafka");
 
     private KafkaContainer kafka;

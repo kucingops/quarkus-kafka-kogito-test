@@ -8,7 +8,7 @@ Semua langkah memakai satu cerita yang sama: **pengajuan pinjaman**. Datanya sel
 { "name": "Budi", "age": 30, "monthlyIncome": 10000000, "requestedAmount": 30000000, "creditScore": 750 }
 ```
 
-Stack: Java 17, Quarkus 3.15.3, Kogito / jBPM / Drools 10.1.0. Tidak butuh database, Kafka, atau Podman.
+Stack: Java 17, Quarkus 3.27.2 (LTS), Kogito / jBPM / Drools 10.2.0. Tidak butuh database, Kafka, atau Podman.
 
 ## Peta langkah
 

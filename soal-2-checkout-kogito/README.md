@@ -2,7 +2,7 @@
 
 Proses checkout marketplace dimodelkan sebagai BPMN 2.0 (`checkout.bpmn`) dan dieksekusi oleh Kogito di atas Quarkus. Saat build, Kogito membaca file BPMN ini lalu men-generate engine proses beserta REST endpoint-nya.
 
-Stack: Java 17, Quarkus 3.15.3, Kogito / jBPM 10.1.0, H2 in-memory.
+Stack: Java 17, Quarkus 3.27.2 (LTS), Kogito / jBPM 10.2.0, H2 in-memory.
 
 ## Ilustrasi BPMN
 

@@ -15,9 +15,9 @@ Keduanya adalah prototipe untuk tech test, bukan aplikasi produksi. H2 in-memory
 ## Tech stack
 
 - Java 17
-- Quarkus 3.15.3
+- Quarkus 3.27.2 (LTS)
 - Kafka (SmallRye Reactive Messaging)
-- Kogito / jBPM / Drools 10.1.0 (BPMN, DMN, DRL)
+- Kogito / jBPM / Drools 10.2.0 (BPMN, DMN, DRL)
 - H2 in-memory + Hibernate ORM Panache
 
 ## Struktur folder
