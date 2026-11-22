@@ -11,4 +11,8 @@ public class CheckoutRequestRepository implements PanacheRepository<CheckoutRequ
     public boolean existsByRequest(String customerId, String requestId) {
         return count("customerId = ?1 and requestId = ?2", customerId, requestId) > 0;
     }
+
+    public long deleteByRequest(String customerId, String requestId) {
+        return delete("customerId = ?1 and requestId = ?2", customerId, requestId);
+    }
 }

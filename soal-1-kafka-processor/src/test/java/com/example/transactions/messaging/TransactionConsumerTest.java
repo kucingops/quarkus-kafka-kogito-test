@@ -2,12 +2,17 @@ package com.example.transactions.messaging;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +53,11 @@ class TransactionConsumerTest {
     @Test
     @SuppressWarnings("unchecked")
     void processedTransactionIsSentToEnrichedTopicKeyedByTransactionId() {
-        when(processor.process("payload")).thenReturn(new ProcessingResult(Status.PROCESSED, TX, null));
+        when(processor.process(eq("payload"), any())).thenAnswer(inv -> {
+            Consumer<EnrichedTransaction> beforeCommit = inv.getArgument(1);
+            beforeCommit.accept(TX);
+            return new ProcessingResult(Status.PROCESSED, TX, null);
+        });
 
         consumer.consume("payload");
 
@@ -61,7 +70,7 @@ class TransactionConsumerTest {
 
     @Test
     void rejectedTransactionIsSentToDlqWithReason() {
-        when(processor.process("bad"))
+        when(processor.process(eq("bad"), any()))
                 .thenReturn(new ProcessingResult(Status.REJECTED, null, "amount must be greater than 0"));
 
         consumer.consume("bad");
@@ -75,7 +84,7 @@ class TransactionConsumerTest {
 
     @Test
     void unexpectedProcessingErrorIsSentToDlqInsteadOfStoppingTheConsumer() {
-        when(processor.process("boom")).thenThrow(new IllegalStateException("database unavailable"));
+        when(processor.process(eq("boom"), any())).thenThrow(new IllegalStateException("database unavailable"));
 
         consumer.consume("boom");
 
@@ -88,11 +97,27 @@ class TransactionConsumerTest {
 
     @Test
     void duplicateTransactionIsNotSentAnywhere() {
-        when(processor.process("dup"))
+        when(processor.process(eq("dup"), any()))
                 .thenReturn(new ProcessingResult(Status.DUPLICATE, TX, "duplicate transactionId"));
 
         consumer.consume("dup");
 
         verifyNoInteractions(enrichedEmitter, dlqEmitter);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void publishFailureIsPropagatedSoTheMessageIsRetriedInsteadOfGoingToDlq() {
+        when(processor.process(eq("payload"), any())).thenAnswer(inv -> {
+            Consumer<EnrichedTransaction> beforeCommit = inv.getArgument(1);
+            beforeCommit.accept(TX);
+            return new ProcessingResult(Status.PROCESSED, TX, null);
+        });
+        doThrow(new IllegalStateException("broker unavailable"))
+                .when(enrichedEmitter).sendMessageAndAwait(any(KafkaRecord.class));
+
+        assertThrows(TransactionConsumer.PublishFailedException.class, () -> consumer.consume("payload"));
+
+        verifyNoInteractions(dlqEmitter);
     }
 }

@@ -38,7 +38,12 @@ public class TransactionConsumer {
     public void consume(String payload) {
         ProcessingResult result;
         try {
-            result = processor.process(payload);
+            result = processor.process(payload, this::publish);
+        } catch (PublishFailedException e) {
+            // Transaksi database sudah di-rollback. Exception diteruskan supaya pesan di-nack dan
+            // offset tidak di-commit; pesan akan diproses ulang (at-least-once), bukan masuk DLQ.
+            LOG.errorf(e, "Failed to publish %s, database changes rolled back", e.transactionId);
+            throw e;
         } catch (RuntimeException e) {
             LOG.errorf(e, "Unexpected error while processing message");
             reject(payload, "processing error: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getName()));
@@ -46,16 +51,30 @@ public class TransactionConsumer {
         }
 
         switch (result.status()) {
-            case PROCESSED -> publish(result.transaction());
+            case PROCESSED -> LOG.infof("Processed %s -> %s (%s IDR, highRisk=%s)",
+                    result.transaction().transactionId(), result.transaction().category(),
+                    result.transaction().amountIdr(), result.transaction().highRisk());
             case DUPLICATE -> LOG.debugf("Duplicate ignored: %s", result.transaction().transactionId());
             case REJECTED -> reject(payload, result.reason());
         }
     }
 
     private void publish(EnrichedTransaction tx) {
-        enrichedEmitter.sendMessageAndAwait(KafkaRecord.of(tx.transactionId(), tx));
-        LOG.infof("Processed %s -> %s (%s IDR, highRisk=%s)",
-                tx.transactionId(), tx.category(), tx.amountIdr(), tx.highRisk());
+        try {
+            enrichedEmitter.sendMessageAndAwait(KafkaRecord.of(tx.transactionId(), tx));
+        } catch (RuntimeException e) {
+            throw new PublishFailedException(tx.transactionId(), e);
+        }
+    }
+
+    static final class PublishFailedException extends RuntimeException {
+
+        final String transactionId;
+
+        PublishFailedException(String transactionId, Throwable cause) {
+            super("failed to publish " + transactionId + " to transactions-enriched", cause);
+            this.transactionId = transactionId;
+        }
     }
 
     private void reject(String payload, String reason) {

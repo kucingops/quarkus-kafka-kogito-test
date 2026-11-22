@@ -2,6 +2,8 @@ package com.example.transactions.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.inOrder;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -11,10 +13,13 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -98,5 +103,44 @@ class TransactionProcessorTest {
         assertEquals(Status.REJECTED, result.status());
         assertTrue(result.reason().startsWith("malformed JSON"));
         verifyNoInteractions(transformer, repository);
+    }
+
+    @Test
+    void beforeCommitCallbackRunsAfterPersistAndFlush() {
+        when(transformer.transform(any(RawTransaction.class))).thenReturn(TX);
+        when(repository.findById("TRX-1")).thenReturn(null);
+        List<EnrichedTransaction> published = new ArrayList<>();
+
+        ProcessingResult result = processor.process(PAYLOAD, tx -> {
+            InOrder order = inOrder(repository);
+            order.verify(repository).persist(any(TransactionEntity.class));
+            order.verify(repository).flush();
+            published.add(tx);
+        });
+
+        assertEquals(Status.PROCESSED, result.status());
+        assertEquals(List.of(TX), published);
+    }
+
+    @Test
+    void failingCallbackPropagatesSoTheTransactionRollsBack() {
+        when(transformer.transform(any(RawTransaction.class))).thenReturn(TX);
+        when(repository.findById("TRX-1")).thenReturn(null);
+
+        assertThrows(IllegalStateException.class, () -> processor.process(PAYLOAD, tx -> {
+            throw new IllegalStateException("broker unavailable");
+        }));
+    }
+
+    @Test
+    void duplicateAndRejectedTransactionsDoNotTriggerCallback() {
+        when(transformer.transform(any(RawTransaction.class))).thenReturn(TX);
+        when(repository.findById("TRX-1")).thenReturn(new TransactionEntity());
+        List<EnrichedTransaction> published = new ArrayList<>();
+
+        processor.process(PAYLOAD, published::add);
+        processor.process("not json", published::add);
+
+        assertTrue(published.isEmpty());
     }
 }

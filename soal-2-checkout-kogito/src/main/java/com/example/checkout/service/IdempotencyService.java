@@ -37,6 +37,7 @@ public class IdempotencyService {
             return checkout;
         }
         if (claim(customerId, requestId)) {
+            checkout.setRequestClaimed(true);
             LOG.infof("[idempotency] claimed request %s for customer %s", requestId, customerId);
             return checkout;
         }
@@ -45,6 +46,22 @@ public class IdempotencyService {
         checkout.setOrderNumber(originalOrderNumber(customerId, requestId));
         LOG.warnf("[idempotency] duplicate request %s for customer %s", requestId, customerId);
         return checkout;
+    }
+
+    /**
+     * Melepas klaim {@code requestId} supaya client bisa mencoba lagi dengan {@code requestId} yang sama
+     * setelah checkout gagal (stok habis, pembayaran ditolak, order gagal dibuat). Dipanggil oleh
+     * {@link com.example.checkout.listener.CheckoutClaimReleaser} saat proses berakhir tanpa order.
+     */
+    public void releaseClaim(Checkout checkout) {
+        String requestId = normalize(checkout.getRequestId());
+        if (!checkout.isRequestClaimed() || requestId == null) {
+            return;
+        }
+        String customerId = checkout.getCustomerId();
+        QuarkusTransaction.requiringNew().run(() -> checkoutRequestRepository.deleteByRequest(customerId, requestId));
+        checkout.setRequestClaimed(false);
+        LOG.infof("[idempotency] released request %s for customer %s (%s)", requestId, customerId, checkout.getStatus());
     }
 
     private boolean claim(String customerId, String requestId) {

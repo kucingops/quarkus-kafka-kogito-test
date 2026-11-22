@@ -32,6 +32,7 @@ Kedua soal memakai pembagian folder yang sama:
 | `entity` | Bentuk tabel database |
 | `model` | Bentuk data yang dikirim dan diterima |
 | `messaging` | Kirim dan terima pesan Kafka (khusus Soal 1) |
+| `listener` | Process event listener Kogito (khusus Soal 2) |
 
 Hanya `repository` yang berhubungan langsung dengan database; bagian lain cukup memanggil repository. Daftar file lengkapnya ada di bagian "Struktur kode" README masing-masing soal.
 

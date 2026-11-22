@@ -17,6 +17,7 @@ public class Checkout {
 
     private boolean cartValid;
     private boolean duplicateRequest;
+    private boolean requestClaimed;
     private boolean stockReserved;
     private boolean paymentSuccess;
 
@@ -196,5 +197,13 @@ public class Checkout {
 
     public void setNotificationSent(boolean notificationSent) {
         this.notificationSent = notificationSent;
+    }
+
+    public boolean isRequestClaimed() {
+        return requestClaimed;
+    }
+
+    public void setRequestClaimed(boolean requestClaimed) {
+        this.requestClaimed = requestClaimed;
     }
 }
