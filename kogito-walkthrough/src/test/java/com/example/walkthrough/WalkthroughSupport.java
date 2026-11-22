@@ -53,8 +53,8 @@ final class WalkthroughSupport {
                 .extract().jsonPath().getList("$");
         return tasks.stream()
                 .filter(t -> {
-                    Object metadata = t.get("metadata");
-                    return metadata instanceof Map<?, ?> m && processInstanceId.equals(m.get("ProcessInstanceId"));
+                    Object processInfo = t.get("processInfo");
+                    return processInfo instanceof Map<?, ?> m && processInstanceId.equals(m.get("processInstanceId"));
                 })
                 .findFirst()
                 .orElse(null);

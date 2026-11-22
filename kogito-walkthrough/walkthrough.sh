@@ -27,7 +27,7 @@ complete_task() { # processInstanceId approved note
   local tasks task_id
   for _ in $(seq 1 20); do
     tasks=$(get "/usertasks/instance?$OFFICER" 2>/dev/null)
-    task_id=$(echo "$tasks" | jf "map(select(.metadata.ProcessInstanceId == \"$1\"))[0].id // empty")
+    task_id=$(echo "$tasks" | jf "map(select(.processInfo.processInstanceId == \"$1\"))[0].id // empty")
     [[ -n "$task_id" ]] && break
     sleep 0.2
   done

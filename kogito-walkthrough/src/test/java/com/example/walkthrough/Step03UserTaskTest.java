@@ -68,6 +68,6 @@ class Step03UserTaskTest {
         given().queryParam("user", "joko").queryParam("group", "marketing")
                 .when().get("/usertasks/instance")
                 .then().statusCode(200)
-                .body("findAll { it.metadata.ProcessInstanceId == '" + id + "' }.size()", equalTo(0));
+                .body("findAll { it.processInfo.processInstanceId == '" + id + "' }.size()", equalTo(0));
     }
 }
